@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 14px; color: #1f1f1f; background: #f8f9fa; }
+    h2 { margin: 0 0 4px; font-size: 19px; }
+    .version { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .muted { color: #666; font-size: 12px; margin-bottom: 14px; }
+    .card { border: 1px solid #dadce0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fff; }
+    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; margin: 0 0 12px; }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    button { border: none; border-radius: 999px; padding: 9px 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .primary   { background: #1a73e8; color: white; }
+    .secondary { background: #f1f3f4; color: #222; }
+    .status { font-size: 12px; margin-top: 10px; min-height: 16px; line-height: 1.4; }
+    .ok  { color: #188038; }
+    .bad { color: #d93025; }
+    .hint { font-size: 11px; color: #5f6368; margin-top: 3px; line-height: 1.4; }
+    .nav-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .nav-bar button.nav { font-size: 12px; color: #1a73e8; padding: 4px 12px; border-radius: 999px; background: #e8f0fe; font-weight: 600; border: none; cursor: pointer; }
+    .nav-bar button.nav:hover { background: #d2e3fc; }
+    .version-row { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+    .version-box { background: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; padding: 8px 14px; font-size: 13px; }
+    .version-box .lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #9aa0a6; margin-bottom: 2px; }
+    .version-box .val { font-family: monospace; font-size: 15px; font-weight: 700; color: #1f1f1f; }
+    .changelog-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; margin: 14px 0 6px; }
+    #changelogList { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.8; color: #1f1f1f; }
+    .api-warning { background: #fef7e0; border: 1px solid #f9ab00; border-radius: 8px; padding: 10px 12px; margin: 12px 0; font-size: 12px; line-height: 1.7; display: none; }
+  </style>
+</head>
+<body>
+  <h2>Workspace Watchdog</h2>
+  <div class="version">v2.9.0</div>
+  <div class="muted">Updates &middot; Login monitor for Google Workspace</div>
+
+  <div class="nav-bar">
+    <button class="nav" onclick="openWizard()">&#9881; Setup Wizard</button>
+    <button class="nav" onclick="openSettings()">&#9881; Settings</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Update Manager</div>
+
+    <div class="version-row">
+      <div class="version-box">
+        <div class="lbl">Installed</div>
+        <div class="val" id="installedVersion">Checking...</div>
+      </div>
+      <div style="font-size:20px;color:#dadce0;">&#8594;</div>
+      <div class="version-box">
+        <div class="lbl">Latest on GitHub</div>
+        <div class="val" id="latestVersion">—</div>
+      </div>
+      <div id="updateStatusIcon"></div>
+    </div>
+
+    <div id="changelogContainer" style="display:none;">
+      <div class="changelog-title">
+        What's New
+        <span id="releasedDate" style="font-weight:400;color:#9aa0a6;font-size:11px;text-transform:none;letter-spacing:0;margin-left:6px;"></span>
+      </div>
+      <ul id="changelogList"></ul>
+    </div>
+
+    <div class="api-warning" id="apiWarning">
+      <strong>&#9888; Apps Script API not enabled</strong>
+      To apply updates, enable the Apps Script API for your Google Cloud project:<br>
+      1. Go to <a href="https://console.developers.google.com/apis/api/script.googleapis.com" target="_blank" style="color:#1a73e8;">Google Cloud Console &rarr; Apps Script API</a><br>
+      2. Click <strong>Enable</strong><br>
+      3. Return here and click <strong>Apply Update</strong> again.<br>
+      <span style="color:#5f6368;font-size:11px;">Script ID: <span id="scriptIdDisplay" style="font-family:monospace;"></span></span>
+    </div>
+
+    <div class="row">
+      <button class="secondary" id="checkBtn" onclick="checkForUpdates()">Check for Updates</button>
+      <button class="primary"   id="applyBtn" style="display:none;" onclick="applyUpdate()">&#8679; Apply Update</button>
+    </div>
+    <div id="updateStatus" class="status"></div>
+
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e8eaed;font-size:11px;color:#9aa0a6;">
+      Source: <a href="https://github.com/fenman19/WorkspaceWatchdog" target="_blank" style="color:#1a73e8;">github.com/fenman19/WorkspaceWatchdog</a>
+    </div>
+  </div>
+
+  <script>
+    function openWizard()   { google.script.run.showSetupWizard();   }
+    function openSettings() { google.script.run.showSettingsPanel(); }
+
+    function setStatus(msg, ok) {
+      var el = document.getElementById('updateStatus');
+      el.textContent = msg || '';
+      el.className = 'status ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    }
+
+    function checkForUpdates() {
+      document.getElementById('checkBtn').disabled = true;
+      document.getElementById('applyBtn').style.display = 'none';
+      document.getElementById('changelogContainer').style.display = 'none';
+      document.getElementById('apiWarning').style.display = 'none';
+      setStatus('Checking GitHub for updates...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('checkBtn').disabled = false;
+          if (result.error) { setStatus(result.error, false); return; }
+
+          document.getElementById('installedVersion').textContent = 'v' + result.installedVersion;
+          document.getElementById('latestVersion').textContent    = 'v' + result.latestVersion;
+
+          if (result.changelog && result.changelog.length) {
+            var list = document.getElementById('changelogList');
+            list.innerHTML = '';
+            result.changelog.forEach(function(item) {
+              var li = document.createElement('li');
+              li.textContent = item;
+              list.appendChild(li);
+            });
+            if (result.released) {
+              document.getElementById('releasedDate').textContent = 'Released ' + result.released;
+            }
+            document.getElementById('changelogContainer').style.display = 'block';
+          }
+
+          if (result.upToDate) {
+            document.getElementById('updateStatusIcon').innerHTML =
+              '<span style="color:#188038;font-weight:700;font-size:13px;">&#10003; Up to date</span>';
+            setStatus('You are running the latest version.', true);
+          } else {
+            document.getElementById('updateStatusIcon').innerHTML =
+              '<span style="color:#d93025;font-weight:700;font-size:13px;">&#8679; Update available</span>';
+            setStatus('A new version is available. Review the changelog, then click Apply Update.', false);
+            document.getElementById('applyBtn').style.display = '';
+          }
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('checkBtn').disabled = false;
+          setStatus('Error: ' + (err.message || String(err)), false);
+        })
+        .checkForUpdates();
+    }
+
+    function applyUpdate() {
+      document.getElementById('applyBtn').disabled = true;
+      document.getElementById('apiWarning').style.display = 'none';
+      setStatus('Fetching files from GitHub and applying update...');
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          document.getElementById('applyBtn').disabled = false;
+          if (result.ok) {
+            setStatus(result.message, true);
+            document.getElementById('applyBtn').style.display = 'none';
+            document.getElementById('installedVersion').textContent = 'v' + result.version;
+            document.getElementById('updateStatusIcon').innerHTML =
+              '<span style="color:#188038;font-weight:700;font-size:13px;">&#10003; Up to date</span>';
+          } else if (result.message === 'ENABLE_API') {
+            document.getElementById('scriptIdDisplay').textContent = result.scriptId || '';
+            document.getElementById('apiWarning').style.display = 'block';
+            setStatus('Apps Script API is not enabled. See instructions above.', false);
+          } else {
+            setStatus(result.message, false);
+          }
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('applyBtn').disabled = false;
+          setStatus('Error: ' + (err.message || String(err)), false);
+        })
+        .applyUpdate();
+    }
+
+    // Auto-check on open
+    checkForUpdates();
+  </script>
+</body>
+</html>

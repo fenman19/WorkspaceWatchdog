@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 14px; color: #1f1f1f; background: #f8f9fa; }
+    h2 { margin: 0 0 4px; font-size: 19px; }
+    .version { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .muted { color: #666; font-size: 12px; margin-bottom: 14px; }
+    .card { border: 1px solid #dadce0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fff; }
+    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; margin: 0 0 10px; }
+    .card-title.collapsible { cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 10px; user-select: none; }
+    .card-title.collapsible:hover { color: #1a73e8; }
+    .card-title.collapsible .caret { font-size: 11px; transition: transform 0.2s; color: #9aa0a6; }
+    .card-title.collapsible.collapsed .caret { transform: rotate(-90deg); }
+    .card-body { overflow: hidden; transition: max-height 0.25s ease; }
+    .card-body.collapsed { max-height: 0 !important; }
+    .grid { display: grid; grid-template-columns: 1fr 110px; gap: 8px 10px; align-items: center; }
+    label { font-size: 13px; font-weight: 600; }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 7px 8px; border: 1px solid #c7c7c7; border-radius: 8px; font-size: 13px; }
+    input[type="text"].wide { grid-column: 1 / -1; width: 100%; }
+    textarea { width: 100%; padding: 7px 8px; border: 1px solid #c7c7c7; border-radius: 8px; font-size: 13px; resize: vertical; min-height: 58px; font-family: monospace; }
+    .checkbox-row { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 13px; font-weight: 600; }
+    .checkbox-row input { width: auto; margin: 0; }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    button { border: none; border-radius: 999px; padding: 9px 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .primary { background: #1a73e8; color: white; }
+    .secondary { background: #f1f3f4; color: #222; }
+    .danger { background: #d93025; color: white; }
+    .accent { background: #188038; color: white; }
+    .status { font-size: 12px; margin-top: 10px; min-height: 16px; line-height: 1.4; }
+    .ok { color: #188038; }
+    .bad { color: #d93025; }
+    .hint { font-size: 11px; color: #5f6368; margin-top: 3px; line-height: 1.4; }
+    .small { font-size: 11px; color: #666; margin-top: 6px; }
+    .nav-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .nav-bar button.nav { font-size: 12px; color: #1a73e8; padding: 4px 12px; border-radius: 999px; background: #e8f0fe; font-weight: 600; border: none; cursor: pointer; }
+    .nav-bar button.nav:hover { background: #d2e3fc; }
+    .status-box { background: #f8f9fa; border: 1px solid #dadce0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
+    .status-box .lbl { font-weight: 700; color: #5f6368; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .step-badge { display: inline-flex; align-items: center; justify-content: center; background: #1a73e8; color: white; border-radius: 999px; width: 20px; height: 20px; font-size: 11px; font-weight: 700; margin-right: 8px; flex-shrink: 0; margin-top: 2px; }
+    .step-row { display: flex; align-items: flex-start; margin-bottom: 12px; }
+    .step-row > div { flex: 1; }
+  </style>
+</head>
+<body>
+  <h2>Workspace Watchdog</h2>
+  <div class="version">v2.9.0</div>
+  <div class="muted">Setup wizard &middot; Login monitor for Google Workspace</div>
+
+  <div class="nav-bar">
+    <button class="nav" onclick="openSettings()">&#9881; Settings</button>
+    <button class="nav" onclick="openUpdates()">&#8593; Updates</button>
+  </div>
+
+  <div class="status-box">
+    <div class="lbl">Installation Status</div>
+    <div id="installStatusText" style="color:#9aa0a6;">Checking...</div>
+  </div>
+
+  <!-- Step 1: API Keys -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Step 1 &mdash; API Keys <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:400px;">
+      <div style="margin-top:10px;">
+        <div class="step-row">
+          <span class="step-badge">1</span>
+          <div>
+            <label for="ipinfoToken">IPInfo Token <span style="font-weight:400;color:#5f6368;">(optional)</span></label>
+            <input id="ipinfoToken" type="text" placeholder="token from ipinfo.io" style="margin-top:4px;">
+            <div class="hint">Free tier: 50k lookups/month. Leave blank to use ip-api.com fallback.</div>
+          </div>
+        </div>
+        <div class="step-row">
+          <span class="step-badge">2</span>
+          <div>
+            <label for="abuseIpDbKey">AbuseIPDB Key <span style="font-weight:400;color:#5f6368;">(optional)</span></label>
+            <input id="abuseIpDbKey" type="text" placeholder="API key from abuseipdb.com" style="margin-top:4px;">
+            <div class="hint">Enables IP reputation scoring on the Suspicious sheet. Free tier available.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Map Access -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Step 2 &mdash; Full Screen Map Access <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:400px;">
+      <div style="margin-top:10px;">
+        <div class="hint" style="margin-bottom:8px;">
+          Emails allowed to access the full screen map. Deploy as Web App with
+          <strong>Execute as: User accessing the web app</strong>.
+        </div>
+        <label for="mapAllowedUsers">Allowed users (one per line)</label>
+        <textarea id="mapAllowedUsers" rows="3"
+          placeholder="user@domain.com&#10;other@domain.com"
+          style="margin-top:4px;"></textarea>
+        <div class="row">
+          <button class="secondary" onclick="saveMapUsers()">Save</button>
+          <button class="secondary" onclick="showMapUrl()">Show Map URL</button>
+        </div>
+        <div id="mapUserStatus" class="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Install -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Step 3 &mdash; Install / Repair <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:700px;">
+      <div style="margin-top:10px;">
+        <div class="hint" style="margin-bottom:12px;">
+          <strong>First time?</strong> Click <em>Install / Repair</em> to create all sheets, set up
+          triggers, and run the first sync. Use <em>Fast Install</em> to seed with fewer hours of history.
+          Run <em>Install / Repair</em> anytime to fix missing triggers or sheets without losing data.
+        </div>
+        <div class="row">
+          <button class="secondary" onclick="testReports()">Test Reports API</button>
+          <button class="secondary" onclick="testDirectory()">Test Directory API</button>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="primary"   onclick="installNow()">Install / Repair</button>
+          <button class="secondary" onclick="fastInstallNow()">Fast Install</button>
+        </div>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e8eaed;">
+          <div style="font-size:12px;font-weight:700;color:#5f6368;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">Advanced</div>
+          <div class="grid" style="margin-bottom:8px;">
+            <label for="fastInstallLookbackMinutes">Fast install seed (minutes)</label>
+            <input id="fastInstallLookbackMinutes" type="number" value="120">
+          </div>
+          <div class="grid" style="margin-bottom:8px;">
+            <label for="backfillDays">Backfill days</label>
+            <input id="backfillDays" type="number" value="1" min="1" max="180">
+          </div>
+          <div class="row">
+            <button class="accent"    onclick="bulkLoadOUs()">Bulk Load OUs</button>
+            <button class="secondary" onclick="warmupNow()">Cache Warmup</button>
+            <button class="secondary" onclick="fillBlankGeo()">Fill Blank Geo</button>
+            <button class="secondary" onclick="runBackfill()">Backfill Days</button>
+          </div>
+          <div class="row" style="margin-top:8px;">
+            <button class="secondary" onclick="trimSetup()">Trim Setup Sheet</button>
+            <button class="danger"    onclick="resetState()">Reset Install State</button>
+          </div>
+        </div>
+        <div id="status" class="status"></div>
+        <div class="small">After installing, use <strong>Settings</strong> from the Workspace Watchdog menu to configure alerts, digest, and monitoring options.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setStatus(msg, ok) {
+      var el = document.getElementById('status');
+      el.textContent = msg || '';
+      el.className = 'status ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    }
+    function openSettings() { google.script.run.showSettingsPanel(); }
+    function openUpdates()  { google.script.run.showUpdatesPanel();  }
+    function toggleCard(t) {
+      var b = t.nextElementSibling, c = t.classList.contains('collapsed');
+      t.classList.toggle('collapsed', !c); b.classList.toggle('collapsed', !c);
+    }
+    function loadConfig() {
+      google.script.run
+        .withSuccessHandler(fillForm)
+        .withFailureHandler(function(e) { setStatus(e.message || String(e), false); })
+        .getWizardConfig();
+    }
+    function fillForm(cfg) {
+      document.getElementById('ipinfoToken').value               = cfg.ipinfoToken || '';
+      document.getElementById('abuseIpDbKey').value              = cfg.abuseIpDbKey || '';
+      document.getElementById('fastInstallLookbackMinutes').value = cfg.fastInstallLookbackMinutes || 120;
+      loadMapUsers();
+      var box = document.getElementById('installStatusText');
+      if (cfg.installed) {
+        box.innerHTML = '<span style="color:#188038;font-weight:700;">&#10003; Installed</span>' +
+          ' &nbsp;&middot;&nbsp; v' + (cfg.installVersion || '?') +
+          ' &nbsp;&middot;&nbsp; Last install: ' + (cfg.installTimestamp || 'unknown');
+      } else {
+        box.innerHTML = '<span style="color:#f9ab00;font-weight:700;">&#9888; Not yet installed</span>' +
+          ' &nbsp;&mdash;&nbsp; Complete Steps 1-2 then click Install.';
+      }
+    }
+    function loadMapUsers() {
+      google.script.run
+        .withSuccessHandler(function(raw) {
+          var el = document.getElementById('mapAllowedUsers');
+          if (el) el.value = (raw || '').replace(/,/g, '\n');
+        })
+        .withFailureHandler(function() {})
+        .getMapAllowedUsers();
+    }
+    function saveMapUsers() {
+      var status = document.getElementById('mapUserStatus');
+      status.textContent = 'Saving...'; status.className = 'status';
+      google.script.run
+        .withSuccessHandler(function(res) { status.textContent = 'Saved ' + res.count + ' user(s).'; status.className = 'status ok'; })
+        .withFailureHandler(function(e)   { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
+        .saveMapAllowedUsers(document.getElementById('mapAllowedUsers').value);
+    }
+    function showMapUrl() {
+      var status = document.getElementById('mapUserStatus');
+      google.script.run
+        .withSuccessHandler(function(url) {
+          if (!url) { status.textContent = 'Set DEPLOYMENT_ID in Script Properties first.'; status.className = 'status bad'; return; }
+          status.textContent = 'URL: ' + url; status.className = 'status ok';
+        })
+        .withFailureHandler(function(e) { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
+        .getMapFullscreenUrl();
+    }
+    function testReports()   { setStatus('Testing Reports API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testAdminAccess(); }
+    function testDirectory() { setStatus('Testing Directory API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testDirectoryAccess(); }
+    function installNow() {
+      setStatus('Installing... this may take a minute on large domains.');
+      google.script.run
+        .withSuccessHandler(function(res) { setStatus('Install complete. Triggers: ' + res.triggerCount + (res.missingSheets&&res.missingSheets.length?' Missing: '+res.missingSheets.join(', '):'') + '.', true); })
+        .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
+        .installFromWizard(getInstallForm());
+    }
+    function fastInstallNow() {
+      setStatus('Fast install — ' + (document.getElementById('fastInstallLookbackMinutes').value||120) + ' min seed window...');
+      google.script.run
+        .withSuccessHandler(function(res) { setStatus('Fast install complete. Triggers: ' + res.triggerCount + '.', true); })
+        .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
+        .installFromWizardFast(getInstallForm());
+    }
+    function bulkLoadOUs()  { setStatus('Bulk-loading all OUs...'); google.script.run.withSuccessHandler(function(){setStatus('Done.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).bulkLoadAllOUsMenu(); }
+    function warmupNow()    { setStatus('Running cache warmup...'); google.script.run.withSuccessHandler(function(){setStatus('Cache warmup complete.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).cacheWarmup(); }
+    function fillBlankGeo() { setStatus('Filling blank geo...'); google.script.run.withSuccessHandler(function(){setStatus('Done.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).fillBlankGeoInMain(); }
+    function resetState()   { setStatus('Resetting...'); google.script.run.withSuccessHandler(function(){setStatus('Reset.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).resetInstallState(); }
+    function trimSetup()    { setStatus('Trimming...'); google.script.run.withSuccessHandler(function(r){setStatus(r&&r.message?r.message:'Done.',true);}).withFailureHandler(function(e){setStatus('Error: '+(e.message||String(e)),false);}).trimSetupSheet(1); }
+    function runBackfill() {
+      var days = parseInt(document.getElementById('backfillDays').value)||1;
+      setStatus('Backfilling ' + days + ' day(s)...');
+      google.script.run
+        .withSuccessHandler(function(res) { setStatus('Backfill complete: ' + (res&&res.rows?res.rows+' rows processed.':'done.'), true); })
+        .withFailureHandler(function(e)   { setStatus('Backfill error: ' + (e.message||String(e)), false); })
+        .backfillDays(days);
+    }
+    function getInstallForm() {
+      return {
+        ipinfoToken:                document.getElementById('ipinfoToken').value,
+        abuseIpDbKey:               document.getElementById('abuseIpDbKey').value,
+        fastInstallLookbackMinutes: document.getElementById('fastInstallLookbackMinutes').value
+      };
+    }
+    loadConfig();
+  </script>
+</body>
+</html>

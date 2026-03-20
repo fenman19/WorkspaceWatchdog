@@ -1,0 +1,11 @@
+{
+  "version": "2.9.0",
+  "released": "2025-03-20",
+  "changelog": [
+    "Added GitHub-based auto-update system",
+    "Updates card in Setup Wizard with changelog display",
+    "Check for Updates item added to Workspace Watchdog menu",
+    "Silent update check on wizard open — badge appears if update available",
+    "Apps Script API detection with setup instructions when not enabled"
+  ]
+}

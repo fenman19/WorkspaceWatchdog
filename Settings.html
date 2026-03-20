@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 14px; color: #1f1f1f; background: #f8f9fa; }
+    h2 { margin: 0 0 4px; font-size: 19px; }
+    .version { font-size: 11px; color: #888; margin-bottom: 4px; }
+    .muted { color: #666; font-size: 12px; margin-bottom: 14px; }
+    .card { border: 1px solid #dadce0; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; background: #fff; }
+    .card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #5f6368; margin: 0 0 10px; }
+    .card-title.collapsible { cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 10px; user-select: none; }
+    .card-title.collapsible:hover { color: #1a73e8; }
+    .card-title.collapsible .caret { font-size: 11px; transition: transform 0.2s; color: #9aa0a6; }
+    .card-title.collapsible.collapsed .caret { transform: rotate(-90deg); }
+    .card-body { overflow: hidden; transition: max-height 0.25s ease; }
+    .card-body.collapsed { max-height: 0 !important; }
+    .grid { display: grid; grid-template-columns: 1fr 110px; gap: 8px 10px; align-items: center; }
+    label { font-size: 13px; font-weight: 600; }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 7px 8px; border: 1px solid #c7c7c7; border-radius: 8px; font-size: 13px; }
+    input[type="text"].wide, textarea.wide { grid-column: 1 / -1; width: 100%; }
+    textarea { width: 100%; padding: 7px 8px; border: 1px solid #c7c7c7; border-radius: 8px; font-size: 13px; resize: vertical; min-height: 58px; font-family: monospace; }
+    .checkbox-row { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 13px; font-weight: 600; }
+    .checkbox-row input { width: auto; margin: 0; }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    button { border: none; border-radius: 999px; padding: 9px 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .primary   { background: #1a73e8; color: white; }
+    .secondary { background: #f1f3f4; color: #222; }
+    .danger    { background: #d93025; color: white; }
+    .accent    { background: #188038; color: white; }
+    .status { font-size: 12px; margin-top: 10px; min-height: 16px; line-height: 1.4; }
+    .ok  { color: #188038; }
+    .bad { color: #d93025; }
+    .hint { font-size: 11px; color: #5f6368; margin-top: 3px; line-height: 1.4; }
+    .nav-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+    .nav-bar button.nav { font-size: 12px; color: #1a73e8; padding: 4px 12px; border-radius: 999px; background: #e8f0fe; font-weight: 600; border: none; cursor: pointer; }
+    .nav-bar button.nav:hover { background: #d2e3fc; }
+    .save-bar { position: sticky; bottom: 0; background: #fff; border-top: 1px solid #dadce0; padding: 10px 0 4px; margin-top: 4px; display: flex; gap: 8px; align-items: center; z-index: 10; }
+    .save-bar #globalStatus { font-size: 12px; flex: 1; }
+    /* OU picker */
+    .ou-picker { border: 1px solid #c7c7c7; border-radius: 8px; max-height: 140px; overflow-y: auto; padding: 6px 8px; background: #fafafa; font-size: 13px; }
+    .ou-picker label { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-weight: normal; cursor: pointer; }
+    .ou-picker label:hover { background: #f1f3f4; border-radius: 4px; }
+    .ou-picker input[type="checkbox"] { width: auto; margin: 0; accent-color: #1a73e8; }
+    .ou-empty { color: #999; font-size: 12px; font-style: italic; }
+    .ou-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .ou-actions button { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #dadce0; background: #f1f3f4; color: #444; cursor: pointer; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <h2>Workspace Watchdog</h2>
+  <div class="version">v2.9.0</div>
+  <div class="muted">Settings &middot; Login monitor for Google Workspace</div>
+
+  <div class="nav-bar">
+    <button class="nav" onclick="openWizard()">&#9881; Setup Wizard</button>
+    <button class="nav" onclick="openUpdates()">&#8593; Updates</button>
+  </div>
+
+  <!-- ── General ─────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      General <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:600px;">
+      <div class="grid" style="margin-top:10px;">
+        <label for="tz">Timezone</label>
+        <input id="tz" type="text" value="America/Chicago">
+
+        <label for="syncEveryMinutes">Sync every (minutes)</label>
+        <input id="syncEveryMinutes" type="number" value="15">
+
+        <label for="activeWindowMinutes">Active window (minutes)</label>
+        <input id="activeWindowMinutes" type="number" value="30">
+
+        <label for="keepDays">Keep days in Main</label>
+        <input id="keepDays" type="number" value="7">
+
+        <label for="firstRunLookbackMinutes">First-run lookback (min)</label>
+        <input id="firstRunLookbackMinutes" type="number" value="1440">
+
+        <label for="apiLagMinutes">API lag buffer (min)</label>
+        <input id="apiLagMinutes" type="number" value="15">
+
+        <label for="overlapMinutes">Overlap window (min)</label>
+        <input id="overlapMinutes" type="number" value="90">
+      </div>
+      <div class="checkbox-row">
+        <input id="trimAfterSync" type="checkbox" checked>
+        <label for="trimAfterSync">Trim Main after each sync</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="activeIncludeToken" type="checkbox" checked>
+        <label for="activeIncludeToken">Include token activity in Active Now</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── OU Monitoring ───────────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      OU Monitoring &amp; Performance <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:800px;">
+      <div class="checkbox-row" style="margin-top:0; margin-bottom:10px;">
+        <input id="bulkOuLoad" type="checkbox" checked>
+        <label for="bulkOuLoad">Bulk OU load (recommended for 500+ accounts)</label>
+      </div>
+      <div class="hint" style="margin-bottom:12px; margin-top:-6px;">
+        Fetches all users from Directory API in one paginated call instead of one-at-a-time.
+        Critical at 4,000+ accounts.
+      </div>
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">
+        Monitor OUs
+        <span style="font-weight:normal; color:#5f6368;">(leave all unchecked to monitor everyone)</span>
+      </label>
+      <div class="ou-picker" id="ouPicker">
+        <span class="ou-empty">Loading OUs from cache — run Bulk Load or a sync first if empty.</span>
+      </div>
+      <div class="ou-actions">
+        <button onclick="selectAllOUs()">Select all</button>
+        <button onclick="clearAllOUs()">Clear all</button>
+        <button onclick="refreshOUList()">&#8635; Refresh list</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Subtree matching is automatic: selecting <code>/Staff</code> also captures
+        <code>/Staff/Teachers</code>, <code>/Staff/Subs</code>, etc.
+      </div>
+      <div style="margin-top:10px;">
+        <label for="monitorOUsRaw" style="font-size:12px; font-weight:600; color:#5f6368;">
+          Or type paths manually (comma-separated):
+        </label>
+        <input id="monitorOUsRaw" type="text" class="wide"
+               placeholder="/Staff,/Admins/IT  — empty = monitor all"
+               style="margin-top:4px; font-family: monospace;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Suspicious Thresholds ──────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      Suspicious Thresholds <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:400px;">
+      <div class="grid" style="margin-top:10px;">
+        <label for="burstCount">Burst login count</label>
+        <input id="burstCount" type="number" value="5">
+
+        <label for="burstWindowMin">Burst window (min)</label>
+        <input id="burstWindowMin" type="number" value="2">
+
+        <label for="impossibleMinMiles">Impossible travel min miles</label>
+        <input id="impossibleMinMiles" type="number" value="50">
+
+        <label for="impossibleMph">Impossible travel mph</label>
+        <input id="impossibleMph" type="number" value="500">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Cache & TTL ─────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      Cache &amp; TTL <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:400px;">
+      <div class="grid" style="margin-top:10px;">
+        <label for="geoTtlHours">Geo cache TTL (hours)</label>
+        <input id="geoTtlHours" type="number" value="168">
+
+        <label for="ouTtlHours">OU cache TTL (hours)</label>
+        <input id="ouTtlHours" type="number" value="336">
+
+        <label for="ipinfoToken">IPInfo token (optional)</label>
+        <input id="ipinfoToken" type="text" value="" placeholder="token for ipinfo.io">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Google Chat Alerts ──────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Google Chat Alerts <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:800px;">
+      <div class="grid" style="margin-top:10px;">
+        <label for="chatWebhookUrl" style="grid-column:1/-1;">Webhook URL</label>
+        <input id="chatWebhookUrl" type="text" class="wide"
+               placeholder="https://chat.googleapis.com/v1/spaces/..."
+               style="margin-bottom:4px;">
+      </div>
+      <div class="hint" style="margin-bottom:10px;">
+        Paste your Google Chat incoming webhook URL. Stored securely in Script Properties.
+        <span id="webhookStatus" style="font-weight:600;"></span>
+      </div>
+      <div class="grid">
+        <label for="chatAlertDedupeHours">Alert dedupe window (hours)</label>
+        <input id="chatAlertDedupeHours" type="number" value="12">
+      </div>
+      <div class="hint" style="margin-bottom:8px;">Same event will not re-alert within this window.</div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnOutsideUS" type="checkbox" checked>
+        <label for="chatAlertOnOutsideUS">Alert on Outside US logins</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnImpossibleTravel" type="checkbox" checked>
+        <label for="chatAlertOnImpossibleTravel">Alert on Impossible Travel</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnBurst" type="checkbox" checked>
+        <label for="chatAlertOnBurst">Alert on Login Bursts</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnPasswordLeak" type="checkbox" checked>
+        <label for="chatAlertOnPasswordLeak">Alert on Password Leak</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnFailThreshold" type="checkbox" checked>
+        <label for="chatAlertOnFailThreshold">Alert on Failed Login Threshold</label>
+      </div>
+      <div class="grid" style="margin-top:4px;margin-bottom:8px;">
+        <label for="failThresholdCount">Failure threshold (per 24h)</label>
+        <input id="failThresholdCount" type="number" value="10" min="1">
+      </div>
+      <div class="checkbox-row" style="margin-bottom:8px;">
+        <input id="chatAlertScheduledOnly" type="checkbox" checked>
+        <label for="chatAlertScheduledOnly">Scheduled syncs only (suppress during install/backfill)</label>
+      </div>
+      <div class="row">
+        <button class="secondary" onclick="saveChatSettings()">Save Chat Settings</button>
+        <button class="accent"    onclick="testChat()">Test Webhook</button>
+      </div>
+      <div id="chatStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- ── Daily Digest & Email ────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Daily Digest &amp; Email <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:520px;">
+      <div class="checkbox-row" style="margin-top:10px;margin-bottom:10px;">
+        <input id="digestEnabled" type="checkbox">
+        <label for="digestEnabled">Send daily digest to Google Chat (requires webhook)</label>
+      </div>
+      <div class="grid">
+        <label for="digestHour">Send at hour (CT, 0-23)</label>
+        <input id="digestHour" type="number" value="7" min="0" max="23">
+      </div>
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input id="digestEmailEnabled" type="checkbox" checked>
+        <label for="digestEmailEnabled">Send HTML email digest (works without Chat)</label>
+      </div>
+      <div class="grid" style="margin-top:8px;">
+        <label for="digestEmailTo">Additional recipients</label>
+        <input id="digestEmailTo" type="text" placeholder="other@domain.com">
+      </div>
+      <div class="hint">Email sent to script owner automatically. Add extras above (comma-separated).</div>
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input id="weeklyReportEnabled" type="checkbox" checked>
+        <label for="weeklyReportEnabled">Send weekly summary email (Monday, same hour)</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="digestComparison" type="checkbox" checked>
+        <label for="digestComparison">Show vs-yesterday comparison in daily email</label>
+      </div>
+      <div class="hint" style="margin-top:6px;">
+        Enable Chat, email, or both. At least one must be checked for the digest to send.
+      </div>
+      <div class="row">
+        <button class="secondary" onclick="saveDigestSettings()">Save Digest Settings</button>
+        <button class="accent"    onclick="sendDigestNow()">Send Digest Now</button>
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <button class="secondary" onclick="sendWeeklyNow()" style="width:100%;">Send Weekly Report Now</button>
+      </div>
+      <div id="digestStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- ── Suspicious Whitelist ────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      Suspicious Event Whitelist <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:400px;">
+      <div class="hint" style="margin-top:10px;margin-bottom:10px;">
+        Emails and IPs listed here are silently excluded from the Suspicious sheet
+        and Chat alerts. One entry per line. Main sheet history is never affected.
+      </div>
+      <textarea id="whitelistEntries" rows="6"
+        placeholder="user@domain.com&#10;another.user@domain.com&#10;192.168.1.1"></textarea>
+      <div id="whitelistStatus" class="hint" style="margin-top:6px;min-height:14px;"></div>
+      <div class="row">
+        <button class="secondary" onclick="saveWhitelistNow()">Save Whitelist</button>
+        <button class="secondary" onclick="loadWhitelistNow()">&#8635; Reload</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        Changes take effect on the next scheduled sync.
+        Whitelisted users still appear in Main — only Suspicious and alerts are suppressed.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Full Screen Map Access ──────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      Full Screen Map Access <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:400px;">
+      <div class="hint" style="margin-top:10px;margin-bottom:8px;">
+        Emails allowed to access the full screen map. Deploy as Web App with
+        <strong>Execute as: User accessing the web app</strong>.
+      </div>
+      <label for="mapAllowedUsers">Allowed users (one per line)</label>
+      <textarea id="mapAllowedUsers" rows="4"
+        placeholder="user@domain.com&#10;other@domain.com"
+        style="margin-top:4px;"></textarea>
+      <div class="row">
+        <button class="secondary" onclick="saveMapUsers()">Save</button>
+        <button class="secondary" onclick="showMapUrl()">Show Map URL</button>
+      </div>
+      <div id="mapUserStatus" class="status"></div>
+    </div>
+  </div>
+
+  <!-- ── Sticky Save Bar ─────────────────────────────── -->
+  <div class="save-bar">
+    <button class="primary" onclick="saveAll()">Save All Settings</button>
+    <button class="secondary" onclick="loadConfig()">&#8635; Reload</button>
+    <span id="globalStatus"></span>
+  </div>
+
+  <script>
+    // ── Status helpers ────────────────────────────────────────────────────────
+    function setGlobalStatus(msg, ok) {
+      var el = document.getElementById('globalStatus');
+      el.textContent = msg || '';
+      el.className = ok === true ? 'ok' : ok === false ? 'bad' : '';
+    }
+    function setStatus(id, msg, ok) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'status ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
+    function openWizard()  { google.script.run.showSetupWizard();  }
+    function openUpdates() { google.script.run.showUpdatesPanel(); }
+
+    // ── Card toggle ───────────────────────────────────────────────────────────
+    function toggleCard(t) {
+      var b = t.nextElementSibling, c = t.classList.contains('collapsed');
+      t.classList.toggle('collapsed', !c);
+      b.classList.toggle('collapsed', !c);
+    }
+
+    // ── OU picker helpers ─────────────────────────────────────────────────────
+    var _loadedOUs = [];
+
+    function renderOUPicker(ous, currentCSV) {
+      _loadedOUs = ous || [];
+      var picker   = document.getElementById('ouPicker');
+      var selected = new Set(
+        (currentCSV || '').split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
+      );
+      if (!_loadedOUs.length) {
+        picker.innerHTML = '<span class="ou-empty">No OUs found in cache yet. ' +
+          'Run <strong>Bulk Load OUs</strong> or a sync first, then click &#8635; Refresh list.</span>';
+        return;
+      }
+      picker.innerHTML = _loadedOUs.map(function(ou) {
+        var checked = selected.has(ou.toLowerCase()) ? 'checked' : '';
+        var depth   = (ou.match(/\//g) || []).length - 1;
+        var indent  = depth * 14;
+        return '<label style="padding-left:' + indent + 'px">' +
+          '<input type="checkbox" value="' + ou + '" ' + checked + ' onchange="syncRawFromPicker()">' +
+          ou + '</label>';
+      }).join('');
+    }
+
+    function syncRawFromPicker() {
+      var checked = Array.from(
+        document.querySelectorAll('#ouPicker input[type=checkbox]:checked')
+      ).map(function(cb) { return cb.value; });
+      document.getElementById('monitorOUsRaw').value = checked.join(',');
+    }
+
+    function syncPickerFromRaw() {
+      renderOUPicker(_loadedOUs, document.getElementById('monitorOUsRaw').value);
+    }
+
+    function selectAllOUs() {
+      document.querySelectorAll('#ouPicker input[type=checkbox]').forEach(function(cb) { cb.checked = true; });
+      syncRawFromPicker();
+    }
+
+    function clearAllOUs() {
+      document.querySelectorAll('#ouPicker input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('monitorOUsRaw').value = '';
+    }
+
+    function refreshOUList() {
+      setGlobalStatus('Refreshing OU list...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          renderOUPicker(res.ous, res.current);
+          document.getElementById('monitorOUsRaw').value = res.current || '';
+          setGlobalStatus(res.ous.length + ' OUs loaded.', true);
+        })
+        .withFailureHandler(function(err) { setGlobalStatus(err.message || String(err), false); })
+        .getMonitorableOUs();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      document.getElementById('monitorOUsRaw').addEventListener('input', syncPickerFromRaw);
+    });
+
+    // ── Get full form ─────────────────────────────────────────────────────────
+    function getForm() {
+      return {
+        tz:                          document.getElementById('tz').value,
+        syncEveryMinutes:            document.getElementById('syncEveryMinutes').value,
+        activeWindowMinutes:         document.getElementById('activeWindowMinutes').value,
+        firstRunLookbackMinutes:     document.getElementById('firstRunLookbackMinutes').value,
+        apiLagMinutes:               document.getElementById('apiLagMinutes').value,
+        overlapMinutes:              document.getElementById('overlapMinutes').value,
+        keepDays:                    document.getElementById('keepDays').value,
+        geoTtlHours:                 document.getElementById('geoTtlHours').value,
+        ouTtlHours:                  document.getElementById('ouTtlHours').value,
+        burstCount:                  document.getElementById('burstCount').value,
+        burstWindowMin:              document.getElementById('burstWindowMin').value,
+        impossibleMinMiles:          document.getElementById('impossibleMinMiles').value,
+        impossibleMph:               document.getElementById('impossibleMph').value,
+        ipinfoToken:                 document.getElementById('ipinfoToken').value,
+        trimAfterSync:               document.getElementById('trimAfterSync').checked,
+        activeIncludeToken:          document.getElementById('activeIncludeToken').checked,
+        monitorOUs:                  document.getElementById('monitorOUsRaw').value.trim(),
+        bulkOuLoad:                  document.getElementById('bulkOuLoad').checked,
+        chatWebhookUrl:              document.getElementById('chatWebhookUrl').value.trim(),
+        chatAlertDedupeHours:        document.getElementById('chatAlertDedupeHours').value,
+        chatAlertOnOutsideUS:        document.getElementById('chatAlertOnOutsideUS').checked,
+        chatAlertOnImpossibleTravel: document.getElementById('chatAlertOnImpossibleTravel').checked,
+        chatAlertOnBurst:            document.getElementById('chatAlertOnBurst').checked,
+        chatAlertOnPasswordLeak:     document.getElementById('chatAlertOnPasswordLeak').checked,
+        chatAlertOnFailThreshold:    document.getElementById('chatAlertOnFailThreshold').checked,
+        failThresholdCount:          document.getElementById('failThresholdCount').value,
+        chatAlertScheduledOnly:      document.getElementById('chatAlertScheduledOnly').checked,
+        digestEnabled:               document.getElementById('digestEnabled').checked,
+        digestHour:                  document.getElementById('digestHour').value,
+        digestEmailEnabled:          document.getElementById('digestEmailEnabled').checked,
+        digestEmailTo:               document.getElementById('digestEmailTo').value.trim(),
+        weeklyReportEnabled:         document.getElementById('weeklyReportEnabled').checked,
+        digestComparison:            document.getElementById('digestComparison').checked
+      };
+    }
+
+    // ── Fill form from config ─────────────────────────────────────────────────
+    function fillForm(cfg) {
+      document.getElementById('tz').value                         = cfg.tz                         || 'America/Chicago';
+      document.getElementById('syncEveryMinutes').value           = cfg.syncEveryMinutes           || 15;
+      document.getElementById('activeWindowMinutes').value        = cfg.activeWindowMinutes        || 30;
+      document.getElementById('firstRunLookbackMinutes').value    = cfg.firstRunLookbackMinutes    || 1440;
+      document.getElementById('apiLagMinutes').value              = cfg.apiLagMinutes              || 15;
+      document.getElementById('overlapMinutes').value             = cfg.overlapMinutes             || 90;
+      document.getElementById('keepDays').value                   = cfg.keepDays                   || 7;
+      document.getElementById('geoTtlHours').value                = cfg.geoTtlHours                || 168;
+      document.getElementById('ouTtlHours').value                 = cfg.ouTtlHours                 || 336;
+      document.getElementById('burstCount').value                 = cfg.burstCount                 || 5;
+      document.getElementById('burstWindowMin').value             = cfg.burstWindowMin             || 2;
+      document.getElementById('impossibleMinMiles').value         = cfg.impossibleMinMiles         || 50;
+      document.getElementById('impossibleMph').value              = cfg.impossibleMph              || 500;
+      document.getElementById('ipinfoToken').value                = cfg.ipinfoToken                || '';
+      document.getElementById('trimAfterSync').checked            = !!cfg.trimAfterSync;
+      document.getElementById('activeIncludeToken').checked       = !!cfg.activeIncludeToken;
+      document.getElementById('bulkOuLoad').checked               = cfg.bulkOuLoad !== false;
+      document.getElementById('digestEnabled').checked            = !!cfg.digestEnabled;
+      document.getElementById('digestHour').value                 = cfg.digestHour                 || 7;
+      document.getElementById('digestEmailEnabled').checked       = cfg.digestEmailEnabled !== false;
+      document.getElementById('digestEmailTo').value              = cfg.digestEmailTo              || '';
+      document.getElementById('weeklyReportEnabled').checked      = cfg.weeklyReportEnabled !== false;
+      document.getElementById('digestComparison').checked         = cfg.digestComparison !== false;
+      document.getElementById('chatAlertDedupeHours').value       = cfg.chatAlertDedupeHours       || 12;
+      document.getElementById('chatAlertOnOutsideUS').checked     = cfg.chatAlertOnOutsideUS !== false;
+      document.getElementById('chatAlertOnImpossibleTravel').checked = cfg.chatAlertOnImpossibleTravel !== false;
+      document.getElementById('chatAlertOnBurst').checked         = cfg.chatAlertOnBurst !== false;
+      document.getElementById('chatAlertOnPasswordLeak').checked  = cfg.chatAlertOnPasswordLeak !== false;
+      document.getElementById('chatAlertOnFailThreshold').checked = cfg.chatAlertOnFailThreshold !== false;
+      document.getElementById('failThresholdCount').value         = cfg.failThresholdCount         || 10;
+      document.getElementById('chatAlertScheduledOnly').checked   = cfg.chatAlertScheduledOnly !== false;
+
+      // Webhook status indicator
+      var urlField = document.getElementById('chatWebhookUrl');
+      var ws       = document.getElementById('webhookStatus');
+      if (cfg.chatWebhookSet) {
+        ws.textContent = ' Webhook configured';
+        ws.style.color = '#188038';
+        if (!urlField.value) urlField.placeholder = '(webhook already configured — paste new URL to change)';
+        urlField.dataset.isSet = 'true';
+      } else {
+        ws.textContent = ' Not set';
+        ws.style.color = '#d93025';
+        urlField.dataset.isSet = 'false';
+      }
+
+      var monitorOUsRaw = cfg.monitorOUs || '';
+      document.getElementById('monitorOUsRaw').value = monitorOUsRaw;
+
+      // Load OU picker
+      google.script.run
+        .withSuccessHandler(function(res) { renderOUPicker(res.ous, monitorOUsRaw || res.current); })
+        .withFailureHandler(function() {})
+        .getMonitorableOUs();
+
+      loadMapUsers();
+      loadWhitelistNow();
+    }
+
+    function loadConfig() {
+      setGlobalStatus('Loading...');
+      google.script.run
+        .withSuccessHandler(function(cfg) { fillForm(cfg); setGlobalStatus(''); })
+        .withFailureHandler(function(err) { setGlobalStatus(err.message || String(err), false); })
+        .getWizardConfig();
+    }
+
+    // ── Save all settings ─────────────────────────────────────────────────────
+    function saveAll() {
+      setGlobalStatus('Saving all settings...');
+      google.script.run
+        .withSuccessHandler(function(res) { setGlobalStatus(res.message || 'All settings saved.', true); })
+        .withFailureHandler(function(err) { setGlobalStatus(err.message || String(err), false); })
+        .saveWizardConfig(getForm());
+    }
+
+    // ── Chat ──────────────────────────────────────────────────────────────────
+    function saveChatSettings() {
+      var urlField = document.getElementById('chatWebhookUrl');
+      var url      = urlField.value.trim();
+      var isSet    = urlField.dataset.isSet === 'true';
+      if (!url && !isSet) {
+        setStatus('chatStatus', 'Paste a webhook URL first.', false);
+        return;
+      }
+      setStatus('chatStatus', 'Saving...');
+      google.script.run
+        .withSuccessHandler(function() { setStatus('chatStatus', 'Chat settings saved.', true); })
+        .withFailureHandler(function(err) { setStatus('chatStatus', 'Error: ' + (err.message || String(err)), false); })
+        .saveChatSettings(
+          url,
+          document.getElementById('chatAlertDedupeHours').value,
+          document.getElementById('chatAlertOnOutsideUS').checked,
+          document.getElementById('chatAlertOnImpossibleTravel').checked,
+          document.getElementById('chatAlertOnBurst').checked,
+          document.getElementById('chatAlertScheduledOnly').checked
+        );
+    }
+
+    function testChat() {
+      var urlField = document.getElementById('chatWebhookUrl');
+      var url      = urlField.value.trim();
+      var isSet    = urlField.dataset.isSet === 'true';
+      if (!url && !isSet) { setStatus('chatStatus', 'Paste a webhook URL first.', false); return; }
+      setStatus('chatStatus', 'Sending test message...');
+      if (!url && isSet) {
+        google.script.run
+          .withSuccessHandler(function() { setStatus('chatStatus', 'Test sent! Check your Google Chat space.', true); })
+          .withFailureHandler(function(err) { setStatus('chatStatus', 'Error: ' + (err.message || String(err)), false); })
+          .testChatAlert();
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(function() { setStatus('chatStatus', 'Test sent! Check your Google Chat space.', true); })
+        .withFailureHandler(function(err) { setStatus('chatStatus', 'Error: ' + (err.message || String(err)), false); })
+        .testChatAlertWithUrl(url);
+    }
+
+    // ── Digest ────────────────────────────────────────────────────────────────
+    function saveDigestSettings() {
+      setStatus('digestStatus', 'Saving...');
+      google.script.run
+        .withSuccessHandler(function() { setStatus('digestStatus', 'Digest settings saved.', true); })
+        .withFailureHandler(function(err) { setStatus('digestStatus', err.message || String(err), false); })
+        .saveWizardConfig(getForm());
+    }
+
+    function sendDigestNow() {
+      setStatus('digestStatus', 'Sending digest...');
+      google.script.run
+        .withSuccessHandler(function() { setStatus('digestStatus', 'Digest sent!', true); })
+        .withFailureHandler(function(err) { setStatus('digestStatus', 'Error: ' + (err.message || String(err)), false); })
+        .sendDailyDigestNow();
+    }
+
+    function sendWeeklyNow() {
+      setStatus('digestStatus', 'Sending weekly report...');
+      google.script.run
+        .withSuccessHandler(function() { setStatus('digestStatus', 'Weekly report sent.', true); })
+        .withFailureHandler(function(err) { setStatus('digestStatus', 'Error: ' + (err.message || String(err)), false); })
+        .sendWeeklyReportNow();
+    }
+
+    // ── Whitelist ─────────────────────────────────────────────────────────────
+    function loadWhitelistNow() {
+      google.script.run
+        .withSuccessHandler(function(raw) {
+          document.getElementById('whitelistEntries').value = raw || '';
+          var count = raw ? raw.split('\n').filter(Boolean).length : 0;
+          document.getElementById('whitelistStatus').textContent =
+            count ? 'Loaded ' + count + ' entr' + (count === 1 ? 'y.' : 'ies.') : 'Whitelist is empty.';
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('whitelistStatus').textContent = 'Error: ' + (err.message || err);
+        })
+        .getWhitelist();
+    }
+
+    function saveWhitelistNow() {
+      var raw = document.getElementById('whitelistEntries').value;
+      document.getElementById('whitelistStatus').textContent = 'Saving...';
+      google.script.run
+        .withSuccessHandler(function(res) {
+          document.getElementById('whitelistStatus').textContent =
+            '&#10003; Saved — ' + res.emailCount + ' email' + (res.emailCount !== 1 ? 's' : '') +
+            ', ' + res.ipCount + ' IP' + (res.ipCount !== 1 ? 's' : '') + ' suppressed.';
+          document.getElementById('whitelistStatus').style.color = '#188038';
+        })
+        .withFailureHandler(function(err) {
+          document.getElementById('whitelistStatus').textContent = 'Error: ' + (err.message || err);
+          document.getElementById('whitelistStatus').style.color = '#d93025';
+        })
+        .saveWhitelist(raw);
+    }
+
+    // ── Map Access ────────────────────────────────────────────────────────────
+    function loadMapUsers() {
+      google.script.run
+        .withSuccessHandler(function(raw) {
+          var el = document.getElementById('mapAllowedUsers');
+          if (el) el.value = (raw || '').replace(/,/g, '\n');
+        })
+        .withFailureHandler(function() {})
+        .getMapAllowedUsers();
+    }
+
+    function saveMapUsers() {
+      setStatus('mapUserStatus', 'Saving...');
+      google.script.run
+        .withSuccessHandler(function(res) { setStatus('mapUserStatus', 'Saved ' + res.count + ' user(s).', true); })
+        .withFailureHandler(function(err) { setStatus('mapUserStatus', 'Error: ' + (err.message || String(err)), false); })
+        .saveMapAllowedUsers(document.getElementById('mapAllowedUsers').value);
+    }
+
+    function showMapUrl() {
+      google.script.run
+        .withSuccessHandler(function(url) {
+          if (!url) { setStatus('mapUserStatus', 'Set DEPLOYMENT_ID in Script Properties first.', false); return; }
+          setStatus('mapUserStatus', 'URL: ' + url, true);
+        })
+        .withFailureHandler(function(err) { setStatus('mapUserStatus', 'Error: ' + (err.message || String(err)), false); })
+        .getMapFullscreenUrl();
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    loadConfig();
+  </script>
+</body>
+</html>

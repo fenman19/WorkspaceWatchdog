@@ -1,0 +1,13 @@
+{
+  "version": "3.0.0",
+  "released": "2026-03-20",
+  "changelog": [
+    "Split Setup Wizard into three focused panels: Setup Wizard, Settings, and Updates",
+    "Settings panel now houses all configuration: General, OU Monitoring, Cache, Thresholds, Chat Alerts, Daily Digest, and Whitelist",
+    "Setup Wizard is now lean and first-run focused: API keys, Map Access, and Install actions only",
+    "Updates panel is now standalone with auto-check on open, changelog display, and Apply Update",
+    "Sticky Save All button added to bottom of Settings panel",
+    "Navigation links between all three panels",
+    "Menu reorganized with Advanced and Diagnostics submenus"
+  ]
+}
