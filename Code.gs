@@ -1,6 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
  * Google Workspace Login Monitor v3.1.0
+ * Added updater to Toolbar in LiveMap
  * Redesigned toolbar for LiveMap
  * Added Globes to LiveMap
  * New in v2.8: Daily email digest + Weekly Summary
@@ -4830,6 +4831,68 @@ function applyUpdate() {
   }
 }
 
+
+/**
+ * Lightweight notification check for the Live Map.
+ * Returns update status and license info in a single call.
+ * Uses cached last-check result to avoid hammering GitHub on every map load.
+ * Called via google.script.run from LiveMap.html on load.
+ */
+function getMapNotifications() {
+  const props = PropertiesService.getScriptProperties();
+  const result = {
+    updateAvailable:  false,
+    latestVersion:    null,
+    installedVersion: getInstalledVersion(),
+    licenseExpiring:  false,
+    licenseExpired:   false,
+    licenseDaysLeft:  null,
+    licenseTier:      props.getProperty('WW_LICENSE_TIER') || 'free'
+  };
+
+  // ── Update check — use cached result if checked within last 6 hours ──
+  const lastCheck  = props.getProperty(UPDATER.PROP_LAST_CHECK);
+  const sixHoursMs = 6 * 60 * 60 * 1000;
+  const needsCheck = !lastCheck ||
+    (Date.now() - new Date(lastCheck).getTime()) > sixHoursMs;
+
+  if (needsCheck) {
+    try {
+      const resp = UrlFetchApp.fetch(UPDATER.VERSION_URL, {
+        muteHttpExceptions: true,
+        deadline: 5  // 5 second timeout — don't hold up the map
+      });
+      if (resp.getResponseCode() === 200) {
+        const remote = JSON.parse(resp.getContentText());
+        props.setProperty(UPDATER.PROP_LAST_CHECK, new Date().toISOString());
+        props.setProperty('WW_LATEST_VERSION', remote.version);
+        result.latestVersion    = remote.version;
+        result.updateAvailable  = _versionCompare_(result.installedVersion, remote.version) < 0;
+      }
+    } catch(e) { /* silent — don't block map load */ }
+  } else {
+    // Use cached latest version
+    const cached = props.getProperty('WW_LATEST_VERSION');
+    if (cached) {
+      result.latestVersion   = cached;
+      result.updateAvailable = _versionCompare_(result.installedVersion, cached) < 0;
+    }
+  }
+
+  // ── License expiry check ──
+  // Will be wired to real license data when Cloudflare Worker is built.
+  // For now reads from Script Properties if manually set.
+  const expiryStr = props.getProperty('WW_LICENSE_EXPIRY');
+  if (expiryStr) {
+    const expiry   = new Date(expiryStr);
+    const daysLeft = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
+    result.licenseDaysLeft = daysLeft;
+    if (daysLeft <= 0)  result.licenseExpired  = true;
+    else if (daysLeft <= 30) result.licenseExpiring = true;
+  }
+
+  return result;
+}
 /**
  * Simple semver comparator. Returns negative if a < b, 0 if equal, positive if a > b.
  */
