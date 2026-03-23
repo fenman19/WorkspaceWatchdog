@@ -1,7 +1,9 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v2.8.0
- * New in v2.8: Daily email digest + IP reputation lookup (AbuseIPDB)
+ * Google Workspace Login Monitor v3.1.0
+ * Redesigned toolbar for LiveMap
+ * Added Globes to LiveMap
+ * New in v2.8: Daily email digest + Weekly Summary
  * New in v2.7: Suspicious event whitelist — suppress known-safe users/IPs
  * New in v2.6.1: Full-screen standalone map via Web App deployment
  * New in v2.6: Live Map — sheet-native clustered interactive map (LiveMap.html)
