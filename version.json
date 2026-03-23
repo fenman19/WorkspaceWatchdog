@@ -1,12 +1,9 @@
 {
-  "version": "3.2.0",
+  "version": "3.2.1",
   "released": "2026-03-22",
   "changelog": [
-    "Added in-map update notification badge in title bar",
-    "Added license expiry warning badge in title bar (30 days: yellow, 14 days: red)",
-    "Added license expired badge in title bar",
-    "Notification badges are silent on load — only appear when action is needed",
-    "Update check cached for 6 hours to avoid slowing map refresh",
-    "Clicking any notification badge opens the Updates panel directly"
+    "Fixed globe travel arcs persisting after switching away from Suspicious mode",
+    "Arcs now clear immediately on mode switch before new data loads",
+    "Suspicious arcs only render in Suspicious mode or when Susp Overlay is active"
   ]
 }
