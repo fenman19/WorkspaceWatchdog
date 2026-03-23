@@ -720,6 +720,8 @@ function setMode(m) {
   document.getElementById(m === 'main' ? 'btnMain' : m === 'active' ? 'btnActive' : 'btnSuspicious').classList.add('active');
   document.getElementById('selTime').style.display = m === 'active' ? 'none' : '';
   updateActiveNowScorecard();
+  // Immediately refresh globe arcs so they clear before new data arrives
+  if (globeInstance) feedGlobeData();
   reload();
 }
 
@@ -2219,18 +2221,20 @@ function buildGlobePoints() {
 function buildGlobeArcs() {
   var arcs = [];
 
-  // Arcs from suspicious mode data
-  (suspArcs || []).forEach(function(a) {
-    if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
-    arcs.push({
-      startLat: a.from.lat, startLng: a.from.lon,
-      endLat:   a.to.lat,   endLng:   a.to.lon,
-      label:    (a.email || '') + (a.dist ? ' — ' + a.dist + ' mi' : ''),
-      color:    ['rgba(224,64,251,0.05)', '#e040fb']   // magenta comet: fades in from transparent
+  // Arcs from suspicious mode — only show when IN suspicious mode
+  if (mode === 'suspicious') {
+    (suspArcs || []).forEach(function(a) {
+      if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
+      arcs.push({
+        startLat: a.from.lat, startLng: a.from.lon,
+        endLat:   a.to.lat,   endLng:   a.to.lon,
+        label:    (a.email || '') + (a.dist ? ' — ' + a.dist + ' mi' : ''),
+        color:    ['rgba(224,64,251,0.05)', '#e040fb']
+      });
     });
-  });
+  }
 
-  // Arcs from the overlay button (may be different data set)
+  // Arcs from the overlay button — only show when overlay is active
   if (suspOverlayActive && suspOverlayData) {
     (suspOverlayData.arcs || []).forEach(function(a) {
       if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
@@ -2238,7 +2242,7 @@ function buildGlobeArcs() {
         startLat: a.from.lat, startLng: a.from.lon,
         endLat:   a.to.lat,   endLng:   a.to.lon,
         label:    (a.email || '') + ' — overlay',
-        color:    ['rgba(224,64,251,0.05)', '#e040fb']   // same magenta comet
+        color:    ['rgba(224,64,251,0.05)', '#e040fb']
       });
     });
   }
