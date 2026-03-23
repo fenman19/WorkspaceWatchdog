@@ -1,16 +1,12 @@
 {
-  "version": "3.1.0",
-  "released": "2026-03-21",
+  "version": "3.2.0",
+  "released": "2026-03-22",
   "changelog": [
-    "Redesigned toolbar — cleaner single bar with centered scorecards",
-    "Added dedicated title bar with Workspace Watchdog branding and sync status",
-    "View mode (Main / Active Now / Suspicious) now a dropdown instead of three buttons",
-    "Filters and tools moved behind gear icon drawer — keeps toolbar uncluttered",
-    "Detail pane now scrolls independently — no longer pushes Trends section down",
-    "Globe travel arc altitude lowered — arcs hug closer to globe surface",
-    "Removed empty status bar row at bottom of map",
-    "Scorecard numbers larger and always centered regardless of globe controls showing",
-    "Toolbar stays full brightness — removed auto-dim behavior",
-    "Night Earth texture label hidden in globe mode to prevent overflow"
+    "Added in-map update notification badge in title bar",
+    "Added license expiry warning badge in title bar (30 days: yellow, 14 days: red)",
+    "Added license expired badge in title bar",
+    "Notification badges are silent on load — only appear when action is needed",
+    "Update check cached for 6 hours to avoid slowing map refresh",
+    "Clicking any notification badge opens the Updates panel directly"
   ]
 }
