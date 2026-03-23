@@ -1,13 +1,16 @@
 {
-  "version": "3.0.0",
-  "released": "2026-03-20",
+  "version": "3.1.0",
+  "released": "2026-03-21",
   "changelog": [
-    "Split Setup Wizard into three focused panels: Setup Wizard, Settings, and Updates",
-    "Settings panel now houses all configuration: General, OU Monitoring, Cache, Thresholds, Chat Alerts, Daily Digest, and Whitelist",
-    "Setup Wizard is now lean and first-run focused: API keys, Map Access, and Install actions only",
-    "Updates panel is now standalone with auto-check on open, changelog display, and Apply Update",
-    "Sticky Save All button added to bottom of Settings panel",
-    "Navigation links between all three panels",
-    "Menu reorganized with Advanced and Diagnostics submenus"
+    "Redesigned toolbar — cleaner single bar with centered scorecards",
+    "Added dedicated title bar with Workspace Watchdog branding and sync status",
+    "View mode (Main / Active Now / Suspicious) now a dropdown instead of three buttons",
+    "Filters and tools moved behind gear icon drawer — keeps toolbar uncluttered",
+    "Detail pane now scrolls independently — no longer pushes Trends section down",
+    "Globe travel arc altitude lowered — arcs hug closer to globe surface",
+    "Removed empty status bar row at bottom of map",
+    "Scorecard numbers larger and always centered regardless of globe controls showing",
+    "Toolbar stays full brightness — removed auto-dim behavior",
+    "Night Earth texture label hidden in globe mode to prevent overflow"
   ]
 }
