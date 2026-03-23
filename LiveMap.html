@@ -47,6 +47,40 @@
       font-family: 'Share Tech Mono', monospace; font-size: 10px;
       color: var(--text2); display: flex; align-items: center; gap: 8px;
     }
+    /* ── Map notification badges ─────────────────────────────────────── */
+    #mapNotifications {
+      position: absolute; left: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .map-notif {
+      display: none; align-items: center; gap: 5px;
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      font-weight: 700; letter-spacing: .06em;
+      padding: 2px 10px; border-radius: 999px;
+      cursor: pointer; white-space: nowrap;
+      transition: opacity .2s, transform .1s;
+      border: 1px solid transparent;
+    }
+    .map-notif:hover { opacity: 0.85; transform: translateY(-1px); }
+    .map-notif.show { display: flex; }
+    #notifUpdate {
+      background: rgba(0,200,255,0.12);
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 8px rgba(0,200,255,0.3);
+    }
+    #notifExpiring {
+      background: rgba(255,170,0,0.12);
+      color: var(--yellow);
+      border-color: var(--yellow);
+      box-shadow: 0 0 8px rgba(255,170,0,0.3);
+    }
+    #notifExpired {
+      background: rgba(255,59,92,0.12);
+      color: var(--red);
+      border-color: var(--red);
+      box-shadow: var(--glow-red);
+    }
     /* ── Main toolbar ───────────────────────────────────────────────── */
     #toolbar {
       background: linear-gradient(90deg, #060a14f2 0%, #0a1020f2 100%);
@@ -305,7 +339,22 @@
   <div id="splashStatus">Loading<span id="splashDots"></span></div>
 </div>
 <div id="titleBar">
+  <!-- Left: notification badges -->
+  <div id="mapNotifications">
+    <div class="map-notif" id="notifUpdate" onclick="openUpdatesFromMap()" title="Click to open Updates panel">
+      &#8679; UPDATE AVAILABLE
+    </div>
+    <div class="map-notif" id="notifExpiring" onclick="openUpdatesFromMap()" title="Click to open Updates panel">
+      &#9888; <span id="notifExpiringText">LICENSE EXPIRING</span>
+    </div>
+    <div class="map-notif" id="notifExpired" onclick="openUpdatesFromMap()" title="Contact support to renew">
+      &#9888; LICENSE EXPIRED
+    </div>
+  </div>
+
   <span class="tb-title-text">&#9670; Workspace Watchdog &#9670;</span>
+
+  <!-- Right: sync status -->
   <div class="tb-title-status">
     <span id="loadingMsg" style="color:var(--yellow);"></span>
     <span id="syncAge"></span>
@@ -541,6 +590,7 @@ window.onload = function() {
     startSyncAgeTimer();
     startMapRefreshTimer();
     toggleAuto();
+    loadMapNotifications(); // check for updates + license status
     // Load map data then dismiss splash
     var origOnMain = onMain;
     onMain = function(d) {
@@ -564,6 +614,51 @@ function dismissSplash() {
   setTimeout(function() {
     splash.style.display = 'none';
   }, 650);
+}
+
+// ── Map notifications — update + license badges ──────────────────────
+function loadMapNotifications() {
+  google.script.run
+    .withSuccessHandler(function(n) {
+      if (!n) return;
+
+      // ── Update available badge ──
+      var notifUpdate = document.getElementById('notifUpdate');
+      if (n.updateAvailable && notifUpdate) {
+        notifUpdate.classList.add('show');
+        notifUpdate.title = 'Update available: v' + n.latestVersion +
+          ' (installed: v' + n.installedVersion + ') — Click to update';
+      }
+
+      // ── License expiring badge ──
+      var notifExpiring = document.getElementById('notifExpiring');
+      var notifExpired  = document.getElementById('notifExpired');
+      var expiringText  = document.getElementById('notifExpiringText');
+
+      if (n.licenseExpired && notifExpired) {
+        notifExpired.classList.add('show');
+        if (notifExpiring) notifExpiring.classList.remove('show');
+      } else if (n.licenseExpiring && notifExpiring) {
+        notifExpiring.classList.add('show');
+        var days = n.licenseDaysLeft;
+        if (expiringText) {
+          expiringText.textContent = 'LICENSE EXPIRES IN ' + days + ' DAY' + (days === 1 ? '' : 'S');
+        }
+        // Escalate to red when under 14 days
+        if (days <= 14) {
+          notifExpiring.style.background = 'rgba(255,59,92,0.12)';
+          notifExpiring.style.color      = 'var(--red)';
+          notifExpiring.style.borderColor= 'var(--red)';
+          notifExpiring.style.boxShadow  = 'var(--glow-red)';
+        }
+      }
+    })
+    .withFailureHandler(function() { /* silent — notifications are non-critical */ })
+    .getMapNotifications();
+}
+
+function openUpdatesFromMap() {
+  google.script.run.showUpdatesPanel();
 }
 
 // ── Toolbar: filter drawer + auto-dim ────────────────────────────────
