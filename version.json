@@ -1,8 +1,11 @@
 {
-  "version": "3.2.2",
+  "version": "3.2.3",
   "released": "2026-03-23",
   "changelog": [
-    "Added Workspace Watchdog logo to daily digest email header",
-    "Added Workspace Watchdog logo to weekly report email header"
+    "Updated email header logo to shield-only image without duplicate text",
+    "Added inline Update Manager modal to full screen map view",
+    "Update and license notification badges now work in full screen mode",
+    "Apply Update, Check for Updates, and changelog all accessible from the map",
+    "Modal closes on backdrop click or Escape key"
   ]
 }
