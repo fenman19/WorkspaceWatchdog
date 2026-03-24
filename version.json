@@ -1,9 +1,8 @@
 {
-  "version": "3.2.1",
-  "released": "2026-03-22",
+  "version": "3.2.2",
+  "released": "2026-03-23",
   "changelog": [
-    "Fixed globe travel arcs persisting after switching away from Suspicious mode",
-    "Arcs now clear immediately on mode switch before new data loads",
-    "Suspicious arcs only render in Suspicious mode or when Susp Overlay is active"
+    "Added Workspace Watchdog logo to daily digest email header",
+    "Added Workspace Watchdog logo to weekly report email header"
   ]
 }
