@@ -244,6 +244,7 @@ function onOpen() {
       .addItem('Test Chat Alert',        'testChatAlert')
       .addItem('Send Digest Now',        'sendDailyDigestNow')
       .addItem('Send Weekly Report Now', 'sendWeeklyReportNow')
+      .addItem('Trim Diagnostics Sheet', 'trimDiagnosticsSheetMenu')
       .addItem('Show Setup Status',      'showSetupStatus')
       .addItem('Reset Install State',    'resetInstallState')
     )
@@ -408,6 +409,9 @@ function _cleanupAlertKeys_() {
         'Deleted ' + deleted + ' expired alert dedup key(s) from Script Properties.');
     }
   } catch(e) {}
+
+  // Also trim the Diagnostics sheet nightly
+  try { trimDiagnosticsSheet(); } catch(e) {}
 }
 
 /**
@@ -566,6 +570,14 @@ function showSettingsPanel() {
     .setWidth(680)
     .setHeight(820);
   SpreadsheetApp.getUi().showModalDialog(html, 'Workspace Watchdog — Settings');
+}
+
+function trimDiagnosticsSheetMenu() {
+  const removed = trimDiagnosticsSheet();
+  SpreadsheetApp.getActive().toast(
+    'Diagnostics trimmed — ' + (removed || 0) + ' old rows removed.',
+    'Workspace Watchdog', 5
+  );
 }
 
 function showSetupStatus() {
@@ -1697,8 +1709,11 @@ function _isAlertedPermanently_(key) {
   const p = PropertiesService.getScriptProperties();
   const k = 'ww_alerted_' + String(key).replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 200);
   const found = p.getProperty(k) !== null;
-  _logDiagnostics('permDedup/check', new Date(), new Date(), found ? 1 : 0, 0,
-    (found ? 'SUPPRESSED' : 'NOT FOUND') + ': ' + k.slice(0, 120));
+  // Only log NOT FOUND (new potential alert) — suppress routine SUPPRESSED noise
+  if (!found) {
+    _logDiagnostics('permDedup/check', new Date(), new Date(), 0, 0,
+      'NOT FOUND: ' + k.slice(0, 120));
+  }
   return found;
 }
 
@@ -3773,6 +3788,55 @@ function _logDiagnostics(triggerName, startD, endD, parsed, appended, notes, ext
     String(x.windowStartISO ?? ''), String(x.windowEndISO ?? '')
   ];
   sh.getRange(sh.getLastRow()+1,1,1,DIAG_HEADERS.length).setValues([ base.concat(tail) ]);
+}
+
+/**
+ * Trims the Diagnostics sheet to keep only the last KEEP_DIAG_DAYS days.
+ * Called nightly by _cleanupAlertKeys_. Default: 7 days.
+ * Also removes high-volume noise rows (permDedup/check SUPPRESSED) if any slipped through.
+ */
+function trimDiagnosticsSheet() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.DIAG);
+  if (!sh) return;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+
+  const keepDays = Number(
+    PropertiesService.getScriptProperties().getProperty('KEEP_DIAG_DAYS') || 7
+  );
+  const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000);
+
+  const data = sh.getRange(2, 1, lastRow - 1, 2).getValues(); // col A=trigger, col B=startTime
+  var deleteRows = [];
+
+  for (var i = data.length - 1; i >= 0; i--) {
+    const rowDate = new Date(data[i][1]);
+    if (isNaN(rowDate.getTime())) continue;
+    if (rowDate < cutoff) {
+      deleteRows.push(i + 2); // 1-based, +1 for header
+    }
+  }
+
+  // Delete from bottom up to preserve row indices
+  deleteRows.sort(function(a, b) { return b - a; });
+  // Batch delete in chunks for performance
+  var i = 0;
+  while (i < deleteRows.length) {
+    var start = deleteRows[i];
+    var count = 1;
+    while (i + count < deleteRows.length && deleteRows[i + count] === start - count) {
+      count++;
+    }
+    sh.deleteRows(start - count + 1, count);
+    i += count;
+  }
+
+  const removed = deleteRows.length;
+  if (removed > 0) {
+    _logDiagnostics('trimDiagnostics', new Date(), new Date(), removed, 0,
+      'Removed ' + removed + ' rows older than ' + keepDays + ' days. Cutoff: ' + cutoff.toISOString());
+  }
+  return removed;
 }
 
 
