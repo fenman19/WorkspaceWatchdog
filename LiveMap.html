@@ -47,120 +47,6 @@
       font-family: 'Share Tech Mono', monospace; font-size: 10px;
       color: var(--text2); display: flex; align-items: center; gap: 8px;
     }
-
-    /* ── Map notification badges ─────────────────────────────────────── */
-    #mapNotifications {
-      position: absolute; left: 16px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .map-notif {
-      display: none; align-items: center; gap: 5px;
-      font-family: 'Share Tech Mono', monospace; font-size: 10px;
-      font-weight: 700; letter-spacing: .06em;
-      padding: 2px 10px; border-radius: 999px;
-      cursor: pointer; white-space: nowrap;
-      transition: opacity .2s, transform .1s;
-      border: 1px solid transparent;
-    }
-    .map-notif:hover { opacity: 0.85; transform: translateY(-1px); }
-    .map-notif.show { display: flex; }
-    #notifUpdate {
-      background: rgba(0,200,255,0.12); color: var(--accent);
-      border-color: var(--accent); box-shadow: 0 0 8px rgba(0,200,255,0.3);
-    }
-    #notifExpiring {
-      background: rgba(255,170,0,0.12); color: var(--yellow);
-      border-color: var(--yellow); box-shadow: 0 0 8px rgba(255,170,0,0.3);
-    }
-    #notifExpired {
-      background: rgba(255,59,92,0.12); color: var(--red);
-      border-color: var(--red); box-shadow: var(--glow-red);
-    }
-
-    /* ── Inline update modal ─────────────────────────────────────────── */
-    #updateModal {
-      display: none; position: fixed; inset: 0;
-      background: rgba(5,8,16,0.85); z-index: 99000;
-      align-items: center; justify-content: center;
-      backdrop-filter: blur(4px);
-    }
-    #updateModal.open { display: flex; }
-    #updateModalBox {
-      background: #0b1122; border: 1px solid var(--border);
-      border-radius: 12px; width: 520px; max-width: 92vw;
-      box-shadow: 0 0 40px rgba(0,200,255,0.15);
-      overflow: hidden;
-    }
-    #updateModalHeader {
-      background: linear-gradient(90deg, #060a14 0%, #0a1528 100%);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 18px; display: flex;
-      align-items: center; justify-content: space-between;
-    }
-    #updateModalHeader .um-title {
-      font-family: 'Share Tech Mono', monospace; font-size: 12px;
-      font-weight: 700; color: var(--accent); letter-spacing: .12em;
-      text-transform: uppercase; text-shadow: var(--glow-blue);
-    }
-    #updateModalClose {
-      background: none; border: none; color: var(--text2);
-      font-size: 18px; cursor: pointer; padding: 0 4px;
-      line-height: 1; transition: color .2s;
-    }
-    #updateModalClose:hover { color: var(--red); }
-    #updateModalBody { padding: 18px; }
-    .um-version-row {
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 16px; flex-wrap: wrap;
-    }
-    .um-version-box {
-      background: #0f1e35; border: 1px solid var(--border);
-      border-radius: 8px; padding: 8px 14px; min-width: 110px;
-    }
-    .um-version-box .um-lbl {
-      font-family: 'Share Tech Mono', monospace; font-size: 9px;
-      color: var(--text2); text-transform: uppercase; letter-spacing: .08em;
-      line-height: 1; margin-bottom: 3px;
-    }
-    .um-version-box .um-val {
-      font-family: 'Share Tech Mono', monospace; font-size: 16px;
-      font-weight: 700; color: var(--text);
-    }
-    #umStatusIcon { font-size: 13px; font-weight: 700; }
-    #umChangelog { display: none; margin-bottom: 14px; }
-    #umChangelog .um-cl-title {
-      font-family: 'Share Tech Mono', monospace; font-size: 10px;
-      color: var(--text2); text-transform: uppercase; letter-spacing: .08em;
-      margin-bottom: 8px;
-    }
-    #umChangelogList {
-      margin: 0; padding-left: 18px; font-size: 13px;
-      line-height: 1.8; color: var(--text);
-      font-family: 'Rajdhani', sans-serif;
-    }
-    #umApiWarning {
-      display: none; background: rgba(255,170,0,0.08);
-      border: 1px solid var(--yellow); border-radius: 8px;
-      padding: 10px 12px; margin-bottom: 12px;
-      font-size: 12px; line-height: 1.6; color: var(--text2);
-    }
-    #umApiWarning strong { color: var(--yellow); display: block; margin-bottom: 4px; }
-    .um-btn-row { display: flex; gap: 8px; margin-top: 4px; }
-    .um-btn {
-      border: none; border-radius: 999px; padding: 8px 18px;
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      font-family: 'Rajdhani', sans-serif; letter-spacing: .04em;
-      transition: opacity .2s;
-    }
-    .um-btn:hover { opacity: 0.85; }
-    .um-btn.primary { background: var(--accent); color: #000; }
-    .um-btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
-    #umStatus {
-      font-family: 'Share Tech Mono', monospace; font-size: 11px;
-      margin-top: 10px; min-height: 14px; line-height: 1.4;
-    }
-    #umStatus.ok  { color: var(--green); }
-    #umStatus.bad { color: var(--red); }
     /* ── Main toolbar ───────────────────────────────────────────────── */
     #toolbar {
       background: linear-gradient(90deg, #060a14f2 0%, #0a1020f2 100%);
@@ -274,6 +160,127 @@
     #map { flex: 1; }
     #globe-container { position: absolute; inset: 0; display: none; z-index: 5; }
 
+    /* ── Globe Suspicious Overlay Panel ─────────────────────────────────── */
+    #globeAlertPanel {
+      display: none;
+      position: absolute;
+      top: 12px; right: 12px;
+      width: 260px;
+      z-index: 20;
+      pointer-events: auto;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #globeAlertPanel.visible { display: flex; }
+    /* Panel is inside #main which is position:relative — this keeps it above globe */
+
+    /* Active Alerts card */
+    #globeAlertCard {
+      background: rgba(8,15,30,0.92);
+      border: 1px solid rgba(255,59,92,0.4);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(255,59,92,0.15);
+      backdrop-filter: blur(8px);
+    }
+    #globeAlertCard .gap-header {
+      background: rgba(255,59,92,0.12);
+      border-bottom: 1px solid rgba(255,59,92,0.3);
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #globeAlertCard .gap-header-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--red);
+      box-shadow: 0 0 6px var(--red);
+      animation: suspPulse 1.5s ease-in-out infinite;
+    }
+    #globeAlertCard .gap-header-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--red); letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+    #globeAlertList {
+      max-height: 320px;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    #globeAlertList::-webkit-scrollbar { width: 4px; }
+    #globeAlertList::-webkit-scrollbar-track { background: transparent; }
+    #globeAlertList::-webkit-scrollbar-thumb { background: rgba(255,59,92,0.3); border-radius: 2px; }
+    .gap-alert-item {
+      padding: 10px 12px 10px 12px;
+      margin: 3px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      transition: background .15s, border-left-color .15s;
+    }
+    .gap-alert-item:last-child { border-bottom: none; }
+    .gap-alert-item:hover { background: rgba(255,255,255,0.04); }
+    .gap-alert-travel  { border-left-color: #ff6d00 !important; background: rgba(255,109,0,0.06); }
+    .gap-alert-burst   { border-left-color: #ffaa00 !important; background: rgba(255,170,0,0.06); }
+    .gap-alert-outside { border-left-color: #f44336 !important; background: rgba(244,67,54,0.06); }
+    .gap-alert-email {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px; font-weight: 700;
+      color: var(--text); margin-bottom: 2px;
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gap-alert-reason {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; color: var(--text2);
+      line-height: 1.4;
+    }
+    .gap-alert-age {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px; color: #3a5070;
+      margin-top: 3px; text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .gap-alert-icon {
+      float: right; font-size: 14px; margin-left: 6px; margin-top: 1px;
+    }
+    .gap-no-alerts {
+      padding: 16px 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; color: #3a5070;
+      text-align: center; letter-spacing: .06em;
+    }
+
+    /* Legend card */
+    #globeLegendCard {
+      background: rgba(8,15,30,0.88);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      backdrop-filter: blur(8px);
+    }
+    #globeLegendCard .gl-title {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      color: var(--text2); letter-spacing: .1em;
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .gl-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px; color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .gl-row:last-child { margin-bottom: 0; }
+    .gl-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .gl-line {
+      width: 22px; height: 2px;
+      border-top: 2px dashed rgba(244,67,54,0.8);
+      flex-shrink: 0;
+    }
+
 
 /* ── Globe texture dropdown ─────────────────────────────────────────── */
     #textureWrap {
@@ -321,9 +328,9 @@
     .susp-marker::after { content: ''; position: absolute; top: 0; left: 0;
       width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--pulse-clr);
       animation: suspRing 1.8s ease-out infinite; }
-    .susp-travel { background: #f44336; --pulse-clr: rgba(244,67,54,0.6); }
-    .susp-burst  { background: #ff9800; --pulse-clr: rgba(255,152,0,0.6); }
-    .susp-out    { background: #9c27b0; --pulse-clr: rgba(156,39,176,0.6); }
+    .susp-travel { background: #ff6d00; --pulse-clr: rgba(255,109,0,0.6); }
+    .susp-burst  { background: #ffaa00; --pulse-clr: rgba(255,170,0,0.6); }
+    .susp-out    { background: #f44336; --pulse-clr: rgba(244,67,54,0.6); }
     #riskPanel .risk-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; font-weight: 700; }
     .trend-wrap { margin-top: 10px; }
     .trend-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; font-weight: 700; }
@@ -419,78 +426,12 @@
   <div id="splashStatus">Loading<span id="splashDots"></span></div>
 </div>
 <div id="titleBar">
-  <!-- Left: notification badges -->
-  <div id="mapNotifications">
-    <div class="map-notif" id="notifUpdate" onclick="openUpdateModal()" title="Update available — click to update">
-      &#8679; UPDATE AVAILABLE
-    </div>
-    <div class="map-notif" id="notifExpiring" onclick="openUpdateModal()">
-      &#9888; <span id="notifExpiringText">LICENSE EXPIRING</span>
-    </div>
-    <div class="map-notif" id="notifExpired" onclick="openUpdateModal()">
-      &#9888; LICENSE EXPIRED
-    </div>
-  </div>
-
   <span class="tb-title-text">&#9670; Workspace Watchdog &#9670;</span>
-
-  <!-- Right: sync status -->
   <div class="tb-title-status">
     <span id="loadingMsg" style="color:var(--yellow);"></span>
     <span id="syncAge"></span>
     <span style="color:var(--border);">|</span>
     <span id="mapRefreshed"></span>
-  </div>
-</div>
-
-<!-- ── Inline Update Modal ────────────────────────────────────────────── -->
-<div id="updateModal">
-  <div id="updateModalBox">
-    <div id="updateModalHeader">
-      <span class="um-title">&#9670; Update Manager</span>
-      <button id="updateModalClose" onclick="closeUpdateModal()" title="Close">&#10005;</button>
-    </div>
-    <div id="updateModalBody">
-
-      <!-- Version boxes -->
-      <div class="um-version-row">
-        <div class="um-version-box">
-          <div class="um-lbl">Installed</div>
-          <div class="um-val" id="umInstalled">Checking...</div>
-        </div>
-        <div style="font-size:18px;color:var(--border);">&#8594;</div>
-        <div class="um-version-box">
-          <div class="um-lbl">Latest on GitHub</div>
-          <div class="um-val" id="umLatest">&#8212;</div>
-        </div>
-        <div id="umStatusIcon"></div>
-      </div>
-
-      <!-- Changelog -->
-      <div id="umChangelog">
-        <div class="um-cl-title">What's New <span id="umReleased" style="font-weight:400;opacity:.6;margin-left:6px;"></span></div>
-        <ul id="umChangelogList"></ul>
-      </div>
-
-      <!-- API warning -->
-      <div id="umApiWarning">
-        <strong>&#9888; Apps Script API not enabled</strong>
-        Enable it at <a href="https://script.google.com/home/usersettings" target="_blank" style="color:var(--accent);">script.google.com/home/usersettings</a>
-        then try again.<br>
-        <span style="font-size:11px;">Script ID: <span id="umScriptId" style="font-family:'Share Tech Mono',monospace;"></span></span>
-      </div>
-
-      <!-- Buttons -->
-      <div class="um-btn-row">
-        <button class="um-btn secondary" id="umCheckBtn" onclick="umCheckForUpdates()">Check for Updates</button>
-        <button class="um-btn primary"   id="umApplyBtn" style="display:none;" onclick="umApplyUpdate()">&#8679; Apply Update</button>
-      </div>
-      <div id="umStatus"></div>
-
-      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:#3a5070;font-family:'Share Tech Mono',monospace;">
-        SOURCE: <a href="https://github.com/fenman19/WorkspaceWatchdog" target="_blank" style="color:#3a5070;">github.com/fenman19/WorkspaceWatchdog</a>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -632,6 +573,50 @@
 <div id="main">
   <div id="map"></div>
   <div id="globe-container"></div>
+
+  <!-- Suspicious overlay alert panel — sibling of globe-container, z-index above it -->
+  <div id="globeAlertPanel">
+    <!-- Active Alerts card -->
+    <div id="globeAlertCard">
+      <div class="gap-header">
+        <div class="gap-header-dot"></div>
+        <span class="gap-header-title">Active Alerts</span>
+        <span id="globeAlertCount" style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);"></span>
+      </div>
+      <div id="globeAlertList">
+        <div class="gap-no-alerts">No suspicious events</div>
+      </div>
+    </div>
+    <!-- Legend card -->
+    <div id="globeLegendCard">
+      <div class="gl-title">Legend</div>
+      <div class="gl-row">
+        <div style="width:3px;height:32px;background:#ff6d00;border-radius:2px;box-shadow:0 0 6px #ff6d00;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#ff6d00;">Impossible Travel</div>
+          <div style="font-size:10px;color:var(--text2);">High risk — cross-region login</div>
+        </div>
+      </div>
+      <div class="gl-row">
+        <div style="width:3px;height:32px;background:#ffaa00;border-radius:2px;box-shadow:0 0 6px #ffaa00;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#ffaa00;">Login Burst</div>
+          <div style="font-size:10px;color:var(--text2);">Multiple failed attempts</div>
+        </div>
+      </div>
+      <div class="gl-row">
+        <div style="width:3px;height:32px;background:#f44336;border-radius:2px;box-shadow:0 0 6px #f44336;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#f44336;">Outside US</div>
+          <div style="font-size:10px;color:var(--text2);">Login from foreign location</div>
+        </div>
+      </div>
+      <div class="gl-row" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--border);">
+        <div style="width:22px;border-top:2px dashed #ff6d00;flex-shrink:0;margin-top:5px;"></div>
+        <div style="font-size:10px;color:var(--text2);">Impossible Travel Arc</div>
+      </div>
+    </div>
+  </div>
   <div id="detail">
     <div id="detailHeader">
       <span>Details</span>
@@ -721,7 +706,6 @@ window.onload = function() {
     startSyncAgeTimer();
     startMapRefreshTimer();
     toggleAuto();
-    loadMapNotifications();
     // Load map data then dismiss splash
     var origOnMain = onMain;
     onMain = function(d) {
@@ -745,177 +729,6 @@ function dismissSplash() {
   setTimeout(function() {
     splash.style.display = 'none';
   }, 650);
-}
-
-// ── Map notifications + inline update modal ──────────────────────────
-
-// ── Notification badges ──
-function loadMapNotifications() {
-  google.script.run
-    .withSuccessHandler(function(n) {
-      if (!n) return;
-
-      // Update badge
-      if (n.updateAvailable) {
-        var nb = document.getElementById('notifUpdate');
-        if (nb) {
-          nb.classList.add('show');
-          nb.title = 'Update available: v' + n.latestVersion +
-            ' (installed: v' + n.installedVersion + ')';
-        }
-        // Pre-fill modal version info
-        var umI = document.getElementById('umInstalled');
-        var umL = document.getElementById('umLatest');
-        if (umI) umI.textContent = 'v' + n.installedVersion;
-        if (umL) umL.textContent = 'v' + n.latestVersion;
-      }
-
-      // License expiring badge
-      var notifExpiring = document.getElementById('notifExpiring');
-      var notifExpired  = document.getElementById('notifExpired');
-      var expiringText  = document.getElementById('notifExpiringText');
-      if (n.licenseExpired && notifExpired) {
-        notifExpired.classList.add('show');
-      } else if (n.licenseExpiring && notifExpiring) {
-        notifExpiring.classList.add('show');
-        var days = n.licenseDaysLeft;
-        if (expiringText) expiringText.textContent = 'LICENSE EXPIRES IN ' + days + ' DAY' + (days === 1 ? '' : 'S');
-        if (days <= 14) {
-          notifExpiring.style.background  = 'rgba(255,59,92,0.12)';
-          notifExpiring.style.color       = 'var(--red)';
-          notifExpiring.style.borderColor = 'var(--red)';
-          notifExpiring.style.boxShadow   = 'var(--glow-red)';
-        }
-      }
-    })
-    .withFailureHandler(function() { /* silent */ })
-    .getMapNotifications();
-}
-
-// ── Modal open/close ──
-function openUpdateModal() {
-  document.getElementById('updateModal').classList.add('open');
-  // Auto-check if we haven't already populated it
-  var umI = document.getElementById('umInstalled');
-  if (umI && umI.textContent === 'Checking...') {
-    umCheckForUpdates();
-  }
-}
-
-function closeUpdateModal() {
-  document.getElementById('updateModal').classList.remove('open');
-}
-
-// Close on backdrop click
-document.addEventListener('click', function(e) {
-  var modal = document.getElementById('updateModal');
-  if (modal && e.target === modal) closeUpdateModal();
-});
-
-// Close on Escape key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeUpdateModal();
-});
-
-// ── Modal: check for updates ──
-function umSetStatus(msg, ok) {
-  var el = document.getElementById('umStatus');
-  if (!el) return;
-  el.textContent = msg || '';
-  el.className = ok === true ? 'ok' : ok === false ? 'bad' : '';
-}
-
-function umCheckForUpdates() {
-  var checkBtn = document.getElementById('umCheckBtn');
-  var applyBtn = document.getElementById('umApplyBtn');
-  if (checkBtn) checkBtn.disabled = true;
-  if (applyBtn) applyBtn.style.display = 'none';
-  document.getElementById('umChangelog').style.display = 'none';
-  document.getElementById('umApiWarning').style.display = 'none';
-  document.getElementById('umStatusIcon').innerHTML = '';
-  umSetStatus('Checking GitHub for updates...');
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      if (checkBtn) checkBtn.disabled = false;
-      if (result.error) { umSetStatus(result.error, false); return; }
-
-      var umI = document.getElementById('umInstalled');
-      var umL = document.getElementById('umLatest');
-      if (umI) umI.textContent = 'v' + result.installedVersion;
-      if (umL) umL.textContent = 'v' + result.latestVersion;
-
-      // Changelog
-      if (result.changelog && result.changelog.length) {
-        var list = document.getElementById('umChangelogList');
-        list.innerHTML = '';
-        result.changelog.forEach(function(item) {
-          var li = document.createElement('li');
-          li.textContent = item;
-          list.appendChild(li);
-        });
-        var rel = document.getElementById('umReleased');
-        if (rel && result.released) rel.textContent = 'Released ' + result.released;
-        document.getElementById('umChangelog').style.display = 'block';
-      }
-
-      var icon = document.getElementById('umStatusIcon');
-      if (result.upToDate) {
-        if (icon) icon.innerHTML = '<span style="color:var(--green);font-size:13px;">&#10003; Up to date</span>';
-        umSetStatus('You are running the latest version.', true);
-        // Hide update badge since we confirmed up to date
-        var nb = document.getElementById('notifUpdate');
-        if (nb) nb.classList.remove('show');
-      } else {
-        if (icon) icon.innerHTML = '<span style="color:var(--red);font-size:13px;">&#8679; Update available</span>';
-        umSetStatus('A new version is available. Review the changelog, then click Apply Update.', false);
-        if (applyBtn) applyBtn.style.display = '';
-        // Show update badge
-        var nb = document.getElementById('notifUpdate');
-        if (nb) nb.classList.add('show');
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (checkBtn) checkBtn.disabled = false;
-      umSetStatus('Error: ' + (err.message || String(err)), false);
-    })
-    .checkForUpdates();
-}
-
-// ── Modal: apply update ──
-function umApplyUpdate() {
-  var applyBtn = document.getElementById('umApplyBtn');
-  if (applyBtn) applyBtn.disabled = true;
-  document.getElementById('umApiWarning').style.display = 'none';
-  umSetStatus('Fetching files from GitHub and applying update...');
-
-  google.script.run
-    .withSuccessHandler(function(result) {
-      if (applyBtn) applyBtn.disabled = false;
-      if (result.ok) {
-        umSetStatus(result.message, true);
-        if (applyBtn) applyBtn.style.display = 'none';
-        var umI = document.getElementById('umInstalled');
-        if (umI) umI.textContent = 'v' + result.version;
-        var icon = document.getElementById('umStatusIcon');
-        if (icon) icon.innerHTML = '<span style="color:var(--green);font-size:13px;">&#10003; Up to date</span>';
-        // Hide update badge
-        var nb = document.getElementById('notifUpdate');
-        if (nb) nb.classList.remove('show');
-      } else if (result.message === 'ENABLE_API') {
-        var sid = document.getElementById('umScriptId');
-        if (sid) sid.textContent = result.scriptId || '';
-        document.getElementById('umApiWarning').style.display = 'block';
-        umSetStatus('Apps Script API not enabled. See instructions above.', false);
-      } else {
-        umSetStatus(result.message, false);
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (applyBtn) applyBtn.disabled = false;
-      umSetStatus('Error: ' + (err.message || String(err)), false);
-    })
-    .applyUpdate();
 }
 
 // ── Toolbar: filter drawer + auto-dim ────────────────────────────────
@@ -1078,11 +891,18 @@ function mkCluster() {
       var hasSucc  = ms.some(function(m){return m.opt_succ;});
       var hasOther = ms.some(function(m){return m.opt_other;});
       var hasOut   = ms.some(function(m){return m.opt_out;});
-      var col = (hasFail && hasSucc) ? '#ff9800'   // mixed success+failure = yellow
-              : hasFail              ? '#f44336'    // all failures = red
-              : hasOut               ? '#ff9800'    // outside US = yellow
-              : hasOther && !hasFail ? '#00bcd4'    // only other events = cyan
-              :                        '#4caf50';   // all success = green
+      // Traffic light: calculate failure rate for this cluster
+      var total    = ms.length;
+      var failCount= ms.filter(function(m){return m.opt_fail;}).length;
+      var outCount = ms.filter(function(m){return m.opt_out;}).length;
+      var suspCount= ms.filter(function(m){return m.opt_susp;}).length;
+      var failRate = total > 0 ? failCount / total : 0;
+      var col = suspCount > 0  ? '#ff6d00'  // contains suspicious events = orange
+              : outCount > 0   ? '#f44336'  // contains outside US = red
+              : failRate > 0.3 ? '#f44336'  // >30% failures = red
+              : failRate > 0.1 ? '#ffaa00'  // 10-30% failures = amber
+              : hasFail        ? '#ffaa00'  // any failures = amber
+              :                  '#00c8ff'; // all clean = cyan
       var sz = n > 100 ? 46 : n > 20 ? 38 : 30;
       return L.divIcon({ html: '<div style="background:' + col + ';width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#000;border:2px solid rgba(255,255,255,.3);">' + n + '</div>', className: '', iconSize: [sz,sz], iconAnchor: [sz/2,sz/2] });
     }
@@ -1100,10 +920,10 @@ function onMain(d) {
     if (!isFinite(r.lat) || !isFinite(r.lon)) return;
     var isSuccess = r.evName === 'login_success';
     var isFailure = r.evName === 'login_failure';
-    var col = r.outside    ? '#ff9800'   // outside US = orange
-            : isFailure    ? '#f44336'   // failure = red
-            : isSuccess    ? '#4caf50'   // success = green
-            :                '#00bcd4';  // other (verification/challenge/logout) = cyan
+    var col = r.outside    ? '#f44336'   // outside US = red
+            : isFailure    ? '#e53935'   // failure = dark red
+            : isSuccess    ? '#00c8ff'   // success = cyan
+            :                '#00bcd4';  // other = blue
     var isNewEvent = isNew(r.ts);
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col, isNewEvent ? 13 : 10) });
     m.opt_fail  = isFailure;
@@ -1152,7 +972,7 @@ function onActive(d) {
   clusterGroup = mkCluster();
   allRows.forEach(function(r) {
     if (!isFinite(r.lat) || !isFinite(r.lon)) return;
-    var col = r.outside ? '#ff9800' : '#2196f3';
+    var col = r.outside ? '#f44336' : '#00c8ff';  // outside=red, normal=cyan
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col, 12) });
     m.opt_fail = false; m.opt_out = r.outside;
     m.on('click', function() { showActiveDetail(r); });
@@ -1178,9 +998,11 @@ function onSusp(d) {
     if (!ll || !ll.includes(',')) return;
     var p = ll.split(','); var lat = +p[0], lon = +p[1];
     if (!isFinite(lat) || !isFinite(lon)) return;
-    var col = r.reason === 'Impossible Travel' ? '#f44336' : r.reason === 'Login Burst' ? '#ff9800' : '#9c27b0';
+    var col = r.reason === 'Impossible Travel' ? '#ff6d00'  // orange
+            : r.reason === 'Login Burst'       ? '#ffaa00'  // yellow
+            :                                    '#f44336'; // outside US = red
     var m = L.marker([lat, lon], { icon: mkIcon(col, 12) });
-    m.opt_fail = true; m.opt_out = r.reason === 'Outside US';
+    m.opt_fail = r.reason === 'Login Burst'; m.opt_out = r.reason === 'Outside US'; m.opt_susp = true;
     m.on('click', function() { showSuspDetail(r); });
     m.bindPopup('<div class="popup-inner"><div class="popup-email">' + esc(r.email) + '</div>' +
       '<b>' + esc(r.reason) + '</b><br>' + esc(r.details) + '</div>');
@@ -1198,6 +1020,8 @@ function onSusp(d) {
   document.getElementById('sbLeft').textContent = suspRows.length + ' suspicious events';
   // Feed globe if active
   if (globeInitialized && document.getElementById('globeToggle').checked) feedGlobeData();
+  // Update alert panel if overlay is active
+  updateGlobeAlertPanel();
 }
 
 function applySearch() {
@@ -1216,10 +1040,10 @@ function onMainFiltered(rows) {
     if (!isFinite(r.lat) || !isFinite(r.lon)) return;
     var isSuccess = r.evName === 'login_success';
     var isFailure = r.evName === 'login_failure';
-    var col = r.outside    ? '#ff9800'   // outside US = orange
-            : isFailure    ? '#f44336'   // failure = red
-            : isSuccess    ? '#4caf50'   // success = green
-            :                '#00bcd4';  // other (verification/challenge/logout) = cyan
+    var col = r.outside    ? '#f44336'   // outside US = red
+            : isFailure    ? '#e53935'   // failure = dark red
+            : isSuccess    ? '#00c8ff'   // success = cyan
+            :                '#00bcd4';  // other = blue
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col) });
     m.opt_fail  = isFailure;
     m.opt_succ  = isSuccess;
@@ -1358,6 +1182,7 @@ function toggleSuspOverlay() {
     suspOverlayData = null;
     // Remove overlay layer from globe too
     if (globeInitialized && document.getElementById('globeToggle').checked) feedGlobeData();
+    updateGlobeAlertPanel();
   }
 }
 
@@ -1381,7 +1206,7 @@ function drawSuspOverlay(d) {
         iconAnchor: [8, 8]
       })
     }).bindTooltip(
-      '<b style="color:' + (cls==='susp-travel'?'#f44336':cls==='susp-burst'?'#ff9800':'#ce93d8') + ';">' +
+      '<b style="color:' + (cls==='susp-travel'?'#f44336':cls==='susp-burst'?'#ce93d8':'#ffaa00') + ';">' +
       esc(r.reason) + '</b><br>' + esc(r.email) +
       '<br><span style="font-size:11px;color:#9aa0a6;">' + esc(String(r.ts||'').slice(0,16)) + '</span>',
       { sticky: true }
@@ -1406,6 +1231,7 @@ function drawSuspOverlay(d) {
   suspOverlayGroup.addTo(map);
   // Feed overlay data to globe if active
   if (globeInitialized && document.getElementById('globeToggle').checked) feedGlobeData();
+  updateGlobeAlertPanel();
 }
 
 // ── User drill-down ───────────────────────────────────────────────────────────
@@ -1552,7 +1378,7 @@ function renderCharts(rows) {
       datasets: [
         { label: 'Success',      data: d.success,      borderColor: '#4caf50', backgroundColor: 'rgba(76,175,80,0.08)',   borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
         { label: 'Failed',       data: d.failure,      borderColor: '#f44336', backgroundColor: 'rgba(244,67,54,0.08)',  borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
-        { label: 'Verification', data: d.verification, borderColor: '#ff9800', backgroundColor: 'rgba(255,152,0,0.06)',  borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false },
+        { label: 'Verification', data: d.verification, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.06)',  borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false },
         { label: 'Pwd Change',   data: d.password,     borderColor: '#9c27b0', backgroundColor: 'rgba(156,39,176,0.06)', borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false }
       ]
     },
@@ -1571,7 +1397,7 @@ function renderCharts(rows) {
     data: {
       labels: d.labels,
       datasets: [
-        { label: 'Fail Rate %',   data: d.rates, borderColor: '#ff9800', backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true },
+        { label: 'Fail Rate %',   data: d.rates, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true },
         { label: '10% threshold', data: d.labels.map(function(){return 10;}), borderColor: 'rgba(244,67,54,0.5)', borderWidth: 1, borderDash: [6,3], pointRadius: 0, fill: false }
       ]
     },
@@ -1921,8 +1747,8 @@ function expandChart(type) {
         datasets: [
           { label: 'Success',      data: d.success,      borderColor: '#81c995', backgroundColor: 'rgba(129,201,149,0.1)', tension: 0.3, fill: true,  pointRadius: 4 },
           { label: 'Failed',       data: d.failure,      borderColor: '#ef5350', backgroundColor: 'rgba(239,83,80,0.1)',   tension: 0.3, fill: true,  pointRadius: 4 },
-          { label: 'Verification', data: d.verification, borderColor: '#ff9800', backgroundColor: 'rgba(255,152,0,0.06)',  tension: 0.3, fill: false, pointRadius: 3 },
-          { label: 'Pwd Change',   data: d.password,     borderColor: '#ce93d8', backgroundColor: 'rgba(156,39,176,0.06)', tension: 0.3, fill: false, pointRadius: 3 }
+          { label: 'Verification', data: d.verification, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.06)',  tension: 0.3, fill: false, pointRadius: 3 },
+          { label: 'Pwd Change',   data: d.password,     borderColor: '#ffaa00', backgroundColor: 'rgba(156,39,176,0.06)', tension: 0.3, fill: false, pointRadius: 3 }
         ]
       },
       options: baseOpts
@@ -2211,13 +2037,131 @@ function openFullScreen() {
 }
 
 // ── GLOBE VIEW ────────────────────────────────────────────────────────────────
+// ── Globe Alert Panel ────────────────────────────────────────────────────────
+
+function updateGlobeAlertPanel() {
+  var panel = document.getElementById('globeAlertPanel');
+  var list  = document.getElementById('globeAlertList');
+  var count = document.getElementById('globeAlertCount');
+  if (!panel || !list) return;
+
+  // Only show when globe is on AND susp overlay is active
+  var globeOn = document.getElementById('globeToggle') &&
+                document.getElementById('globeToggle').checked;
+
+  if (!globeOn || !suspOverlayActive || !suspOverlayData) {
+    panel.classList.remove('visible');
+    return;
+  }
+
+  panel.classList.add('visible');
+
+  var rows = (suspOverlayData.rows || []).slice(); // copy
+  // Sort: Impossible Travel first, then Burst, then Outside US, then by time desc
+  var order = { 'Impossible Travel': 0, 'Login Burst': 1, 'Outside US': 2 };
+  rows.sort(function(a, b) {
+    var oa = order[a.reason] !== undefined ? order[a.reason] : 3;
+    var ob = order[b.reason] !== undefined ? order[b.reason] : 3;
+    if (oa !== ob) return oa - ob;
+    return String(b.ts || '').localeCompare(String(a.ts || ''));
+  });
+
+  if (!rows.length) {
+    list.innerHTML = '<div class="gap-no-alerts">No suspicious events</div>';
+    if (count) count.textContent = '';
+    return;
+  }
+
+  if (count) count.textContent = rows.length + ' event' + (rows.length !== 1 ? 's' : '');
+
+  list.innerHTML = rows.slice(0, 15).map(function(r) {
+    var icon = r.reason === 'Impossible Travel' ? '&#9992;' :
+               r.reason === 'Login Burst'       ? '&#9889;' : '&#127758;';
+    var iconColor = r.reason === 'Impossible Travel' ? '#ff6d00' :  // orange
+                    r.reason === 'Login Burst'       ? '#ffaa00' :  // yellow
+                                                       '#f44336';  // red for outside US
+    var reasonText = r.reason || 'Suspicious';
+
+    // Build detail line
+    var detail = '';
+    if (r.reason === 'Impossible Travel') {
+      if (r.fromCity && r.toCity) {
+        detail = esc(r.fromCity) + ' &rarr; ' + esc(r.toCity);
+        if (r.dist) detail += ' (' + Math.round(Number(r.dist)).toLocaleString() + ' mi)';
+      } else if (r.details) {
+        // Parse dist from details string e.g. "dt=2.5h, dist=5842mi, speed≈500 mph"
+        var dm = String(r.details).match(/dist=(\d+)mi/);
+        if (dm) detail = Math.round(Number(dm[1])).toLocaleString() + ' mi';
+      }
+    } else if (r.reason === 'Login Burst') {
+      // Parse count from details string e.g. "Events: 8 logins in <= 2 minute(s)"
+      var bm = String(r.details || '').match(/(\d+)\s+login/i);
+      var wm = String(r.details || '').match(/<=\s*(\d+)\s+minute/i);
+      if (bm) detail = bm[1] + ' failed logins' + (wm ? ' in ' + wm[1] + ' min' : '');
+      else if (r.details) detail = String(r.details).slice(0, 60);
+    } else if (r.reason === 'Outside US') {
+      var loc = [r.fromCity, r.fromReg, r.fromCo].filter(Boolean).join(', ');
+      detail = loc ? 'Login from: ' + esc(loc) : 'Login from outside US';
+    }
+
+    // Time ago
+    var ago = '';
+    if (r.ts) {
+      var ms = Date.now() - new Date(r.ts).getTime();
+      var mins = Math.floor(ms / 60000);
+      if (mins < 60) ago = mins + ' min ago';
+      else if (mins < 1440) ago = Math.floor(mins/60) + 'h ago';
+      else ago = Math.floor(mins/1440) + 'd ago';
+    }
+
+    var reasonLabel = r.reason === 'Impossible Travel' ? 'Impossible Travel' :
+                      r.reason === 'Login Burst'       ? 'Login Burst' : 'Outside US';
+
+    var itemClass = r.reason === 'Impossible Travel' ? 'gap-alert-travel' :
+                    r.reason === 'Login Burst'       ? 'gap-alert-burst'  : 'gap-alert-outside';
+
+    return '<div class="gap-alert-item ' + itemClass + '" onclick="globeAlertClick(' + JSON.stringify(r) + ')">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
+        '<span style="font-size:13px;color:' + iconColor + ';">' + icon + '</span>' +
+        '<span style="font-family:monospace;font-size:10px;font-weight:700;' +
+          'color:' + iconColor + ';letter-spacing:.04em;">' + reasonLabel + '</span>' +
+      '</div>' +
+      '<div class="gap-alert-email">' + esc(r.email || 'Unknown') + '</div>' +
+      (detail ? '<div class="gap-alert-reason">' + detail + '</div>' : '') +
+      (ago    ? '<div class="gap-alert-age">' + ago + '</div>' : '') +
+    '</div>';
+  }).join('');
+
+  if (rows.length > 15) {
+    list.innerHTML += '<div class="gap-no-alerts" style="border-top:1px solid rgba(255,255,255,0.05);">+ ' +
+      (rows.length - 15) + ' more events</div>';
+  }
+}
+
+function globeAlertClick(r) {
+  // Open detail panel with this suspicious event
+  if (r && r.email) {
+    document.getElementById('detail').classList.add('open');
+    showSuspDetail(r);
+    hideRiskPanel();
+    showRiskPanel(r.email);
+  }
+}
+
 var globeInstance = null;
 var globeRotating = true;
 var globeAnimId = null;
 var globeInitialized = false;
 var _registerGlobeClicks = null;  // set in initGlobe, called from feedGlobeData
 
-var GLOBE_COLORS = { high: '#ff3b5c', med: '#ffaa00', low: '#00e676' };
+var GLOBE_COLORS = {
+  travel:  '#ff6d00',  // Impossible Travel — orange (critical)
+  burst:   '#ffaa00',  // Login Burst — yellow (warning)
+  outside: '#f44336',  // Outside US — red (foreign login)
+  failure: '#e53935',  // Login failure — dark red
+  success: '#00c8ff',  // Normal success — cyan (accent)
+  other:   '#00bcd4'   // Other events — blue
+};
 
 function toggleGlobeView() {
   var on = document.getElementById('globeToggle').checked;
@@ -2242,9 +2186,13 @@ function toggleGlobeView() {
       feedGlobeData();
       if (globeRotating) startGlobeRotation();
     }
+    updateGlobeAlertPanel();
   } else {
     // ── Returning to map view ────────────────────────────────────────────
     stopGlobeRotation();
+    // Hide alert panel when leaving globe
+    var ap = document.getElementById('globeAlertPanel');
+    if (ap) ap.classList.remove('visible');
 
     // Force Leaflet to fully re-render — needs multiple passes in GAS iframes
     // because the container was display:none and tiles may have been discarded
@@ -2415,10 +2363,12 @@ function buildGlobePoints() {
     if (!overrideColor && seen[key]) { seen[key].count++; return; }
 
     var risk  = overrideRisk  || 'low';
-    var col   = overrideColor || GLOBE_COLORS.low;
+    var col   = overrideColor || GLOBE_COLORS.success;
     if (!overrideColor) {
-      if (r.outside || r.evName === 'login_failure') { risk = 'med'; col = GLOBE_COLORS.med; }
-      if (r.reason === 'Impossible Travel' || r.reason === 'Login Burst') { risk = 'high'; col = GLOBE_COLORS.high; }
+      if (r.evName === 'login_failure') { risk = 'med'; col = GLOBE_COLORS.failure; }
+      if (r.outside)                      { risk = 'high'; col = GLOBE_COLORS.outside; }
+      if (r.reason === 'Login Burst')     { risk = 'high'; col = GLOBE_COLORS.burst; }
+      if (r.reason === 'Impossible Travel'){ risk = 'high'; col = GLOBE_COLORS.travel; }
     }
 
     var pt = {
@@ -2447,8 +2397,8 @@ function buildGlobePoints() {
       if (!ll || !ll.includes(',')) return;
       var p = ll.split(','); var lat = +p[0]; var lng = +p[1];
       if (!isFinite(lat) || !isFinite(lng)) return;
-      var col = r.reason === 'Impossible Travel' ? GLOBE_COLORS.high
-              : r.reason === 'Login Burst'       ? GLOBE_COLORS.med : '#ce93d8';
+      var col = r.reason === 'Impossible Travel' ? GLOBE_COLORS.travel
+              : r.reason === 'Login Burst'       ? GLOBE_COLORS.burst : GLOBE_COLORS.outside;
       points.push({ lat: lat, lng: lng, label: r.email || '', city: r.details || '',
                     type: r.reason || '', risk: 'high', color: col, count: 1, _row: r, _susp: true });
     });
@@ -2462,7 +2412,7 @@ function buildGlobePoints() {
       var p = ll.split(','); var lat = +p[0]; var lng = +p[1];
       if (!isFinite(lat) || !isFinite(lng)) return;
       var col  = r.reason === 'Impossible Travel' ? '#f44336'
-               : r.reason === 'Login Burst'       ? '#ff9800' : '#ce93d8';
+               : r.reason === 'Login Burst'       ? '#ce93d8' : '#ffaa00';
       var risk = r.reason === 'Impossible Travel' ? 'high'
                : r.reason === 'Login Burst'       ? 'med'  : 'med';
       points.push({ lat: lat, lng: lng, label: r.email || '', city: r.details || '',
@@ -2483,7 +2433,7 @@ function buildGlobeArcs() {
       startLat: a.from.lat, startLng: a.from.lon,
       endLat:   a.to.lat,   endLng:   a.to.lon,
       label:    (a.email || '') + (a.dist ? ' — ' + a.dist + ' mi' : ''),
-      color:    ['rgba(224,64,251,0.05)', '#e040fb']   // magenta comet: fades in from transparent
+      color:    ['rgba(255,109,0,0.05)', '#ff6d00']    // orange comet: matches Impossible Travel color
     });
   });
 
@@ -2495,7 +2445,7 @@ function buildGlobeArcs() {
         startLat: a.from.lat, startLng: a.from.lon,
         endLat:   a.to.lat,   endLng:   a.to.lon,
         label:    (a.email || '') + ' — overlay',
-        color:    ['rgba(224,64,251,0.05)', '#e040fb']   // same magenta comet
+        color:    ['rgba(255,109,0,0.05)', '#ff6d00']    // orange: matches Impossible Travel color
       });
     });
   }
