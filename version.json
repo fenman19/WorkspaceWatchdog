@@ -1,10 +1,16 @@
 {
-  "version": "3.2.4",
-  "released": "2026-03-23",
+  "version": "3.3.0",
+  "released": "2026-03-24",
   "changelog": [
-    "Diagnostics sheet now auto-trims to last 7 days nightly",
-    "Removed high-volume SUPPRESSED log entries from Diagnostics sheet",
-    "Added Trim Diagnostics Sheet to Diagnostics menu for manual cleanup",
-    "KEEP_DIAG_DAYS Script Property controls retention (default 7 days)"
+    "Added Active Alerts panel in globe view when Susp Overlay is active",
+    "Alert cards color coded — orange for Impossible Travel, yellow for Login Burst, red for Outside US",
+    "Alert cards show event type label, detail line, and time ago stamp",
+    "Legend panel matches alert card and globe marker colors",
+    "Travel arcs on globe changed to orange matching Impossible Travel color",
+    "Flat map clusters now use traffic light colors — cyan for clean, amber for mixed, red for suspicious",
+    "Globe markers updated — Outside US red, Impossible Travel orange, Login Burst yellow, success cyan",
+    "Color scheme consistent across globe, flat map, clusters, alert panel, and legend",
+    "Alert panel auto-shows and hides with globe and Susp Overlay toggles",
+    "Clicking an alert card opens the detail panel for that event"
   ]
 }
