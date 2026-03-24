@@ -1,7 +1,11 @@
 {
-  "version": "3.2.4",
+  "version": "3.2.3",
   "released": "2026-03-23",
   "changelog": [
-    "Test update — verifying full screen map updater is working correctly"
+    "Updated email header logo to shield-only image without duplicate text",
+    "Added inline Update Manager modal to full screen map view",
+    "Update and license notification badges now work in full screen mode",
+    "Apply Update, Check for Updates, and changelog all accessible from the map",
+    "Modal closes on backdrop click or Escape key"
   ]
 }
