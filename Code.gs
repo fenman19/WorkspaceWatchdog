@@ -1,6 +1,6 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.1.0
+ * Google Workspace Login Monitor v3.2.4
  * Added updater to Toolbar in LiveMap
  * Redesigned toolbar for LiveMap
  * Added Globes to LiveMap
