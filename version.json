@@ -2,6 +2,7 @@
   "version": "3.2.4",
   "released": "2026-03-23",
   "changelog": [
+    "Updated to allow Full Screen updater",
     "Updated email header logo to shield-only image without duplicate text",
     "Added inline Update Manager modal to full screen map view",
     "Update and license notification badges now work in full screen mode",
