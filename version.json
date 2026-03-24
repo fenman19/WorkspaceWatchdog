@@ -1,5 +1,5 @@
 {
-  "version": "3.2.3",
+  "version": "3.2.4",
   "released": "2026-03-23",
   "changelog": [
     "Updated email header logo to shield-only image without duplicate text",
