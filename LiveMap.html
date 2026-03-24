@@ -47,6 +47,7 @@
       font-family: 'Share Tech Mono', monospace; font-size: 10px;
       color: var(--text2); display: flex; align-items: center; gap: 8px;
     }
+
     /* ── Map notification badges ─────────────────────────────────────── */
     #mapNotifications {
       position: absolute; left: 16px;
@@ -64,23 +65,102 @@
     .map-notif:hover { opacity: 0.85; transform: translateY(-1px); }
     .map-notif.show { display: flex; }
     #notifUpdate {
-      background: rgba(0,200,255,0.12);
-      color: var(--accent);
-      border-color: var(--accent);
-      box-shadow: 0 0 8px rgba(0,200,255,0.3);
+      background: rgba(0,200,255,0.12); color: var(--accent);
+      border-color: var(--accent); box-shadow: 0 0 8px rgba(0,200,255,0.3);
     }
     #notifExpiring {
-      background: rgba(255,170,0,0.12);
-      color: var(--yellow);
-      border-color: var(--yellow);
-      box-shadow: 0 0 8px rgba(255,170,0,0.3);
+      background: rgba(255,170,0,0.12); color: var(--yellow);
+      border-color: var(--yellow); box-shadow: 0 0 8px rgba(255,170,0,0.3);
     }
     #notifExpired {
-      background: rgba(255,59,92,0.12);
-      color: var(--red);
-      border-color: var(--red);
-      box-shadow: var(--glow-red);
+      background: rgba(255,59,92,0.12); color: var(--red);
+      border-color: var(--red); box-shadow: var(--glow-red);
     }
+
+    /* ── Inline update modal ─────────────────────────────────────────── */
+    #updateModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(5,8,16,0.85); z-index: 99000;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    #updateModal.open { display: flex; }
+    #updateModalBox {
+      background: #0b1122; border: 1px solid var(--border);
+      border-radius: 12px; width: 520px; max-width: 92vw;
+      box-shadow: 0 0 40px rgba(0,200,255,0.15);
+      overflow: hidden;
+    }
+    #updateModalHeader {
+      background: linear-gradient(90deg, #060a14 0%, #0a1528 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    #updateModalHeader .um-title {
+      font-family: 'Share Tech Mono', monospace; font-size: 12px;
+      font-weight: 700; color: var(--accent); letter-spacing: .12em;
+      text-transform: uppercase; text-shadow: var(--glow-blue);
+    }
+    #updateModalClose {
+      background: none; border: none; color: var(--text2);
+      font-size: 18px; cursor: pointer; padding: 0 4px;
+      line-height: 1; transition: color .2s;
+    }
+    #updateModalClose:hover { color: var(--red); }
+    #updateModalBody { padding: 18px; }
+    .um-version-row {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .um-version-box {
+      background: #0f1e35; border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 14px; min-width: 110px;
+    }
+    .um-version-box .um-lbl {
+      font-family: 'Share Tech Mono', monospace; font-size: 9px;
+      color: var(--text2); text-transform: uppercase; letter-spacing: .08em;
+      line-height: 1; margin-bottom: 3px;
+    }
+    .um-version-box .um-val {
+      font-family: 'Share Tech Mono', monospace; font-size: 16px;
+      font-weight: 700; color: var(--text);
+    }
+    #umStatusIcon { font-size: 13px; font-weight: 700; }
+    #umChangelog { display: none; margin-bottom: 14px; }
+    #umChangelog .um-cl-title {
+      font-family: 'Share Tech Mono', monospace; font-size: 10px;
+      color: var(--text2); text-transform: uppercase; letter-spacing: .08em;
+      margin-bottom: 8px;
+    }
+    #umChangelogList {
+      margin: 0; padding-left: 18px; font-size: 13px;
+      line-height: 1.8; color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+    }
+    #umApiWarning {
+      display: none; background: rgba(255,170,0,0.08);
+      border: 1px solid var(--yellow); border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 12px;
+      font-size: 12px; line-height: 1.6; color: var(--text2);
+    }
+    #umApiWarning strong { color: var(--yellow); display: block; margin-bottom: 4px; }
+    .um-btn-row { display: flex; gap: 8px; margin-top: 4px; }
+    .um-btn {
+      border: none; border-radius: 999px; padding: 8px 18px;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      font-family: 'Rajdhani', sans-serif; letter-spacing: .04em;
+      transition: opacity .2s;
+    }
+    .um-btn:hover { opacity: 0.85; }
+    .um-btn.primary { background: var(--accent); color: #000; }
+    .um-btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    #umStatus {
+      font-family: 'Share Tech Mono', monospace; font-size: 11px;
+      margin-top: 10px; min-height: 14px; line-height: 1.4;
+    }
+    #umStatus.ok  { color: var(--green); }
+    #umStatus.bad { color: var(--red); }
     /* ── Main toolbar ───────────────────────────────────────────────── */
     #toolbar {
       background: linear-gradient(90deg, #060a14f2 0%, #0a1020f2 100%);
@@ -341,13 +421,13 @@
 <div id="titleBar">
   <!-- Left: notification badges -->
   <div id="mapNotifications">
-    <div class="map-notif" id="notifUpdate" onclick="openUpdatesFromMap()" title="Click to open Updates panel">
+    <div class="map-notif" id="notifUpdate" onclick="openUpdateModal()" title="Update available — click to update">
       &#8679; UPDATE AVAILABLE
     </div>
-    <div class="map-notif" id="notifExpiring" onclick="openUpdatesFromMap()" title="Click to open Updates panel">
+    <div class="map-notif" id="notifExpiring" onclick="openUpdateModal()">
       &#9888; <span id="notifExpiringText">LICENSE EXPIRING</span>
     </div>
-    <div class="map-notif" id="notifExpired" onclick="openUpdatesFromMap()" title="Contact support to renew">
+    <div class="map-notif" id="notifExpired" onclick="openUpdateModal()">
       &#9888; LICENSE EXPIRED
     </div>
   </div>
@@ -360,6 +440,57 @@
     <span id="syncAge"></span>
     <span style="color:var(--border);">|</span>
     <span id="mapRefreshed"></span>
+  </div>
+</div>
+
+<!-- ── Inline Update Modal ────────────────────────────────────────────── -->
+<div id="updateModal">
+  <div id="updateModalBox">
+    <div id="updateModalHeader">
+      <span class="um-title">&#9670; Update Manager</span>
+      <button id="updateModalClose" onclick="closeUpdateModal()" title="Close">&#10005;</button>
+    </div>
+    <div id="updateModalBody">
+
+      <!-- Version boxes -->
+      <div class="um-version-row">
+        <div class="um-version-box">
+          <div class="um-lbl">Installed</div>
+          <div class="um-val" id="umInstalled">Checking...</div>
+        </div>
+        <div style="font-size:18px;color:var(--border);">&#8594;</div>
+        <div class="um-version-box">
+          <div class="um-lbl">Latest on GitHub</div>
+          <div class="um-val" id="umLatest">&#8212;</div>
+        </div>
+        <div id="umStatusIcon"></div>
+      </div>
+
+      <!-- Changelog -->
+      <div id="umChangelog">
+        <div class="um-cl-title">What's New <span id="umReleased" style="font-weight:400;opacity:.6;margin-left:6px;"></span></div>
+        <ul id="umChangelogList"></ul>
+      </div>
+
+      <!-- API warning -->
+      <div id="umApiWarning">
+        <strong>&#9888; Apps Script API not enabled</strong>
+        Enable it at <a href="https://script.google.com/home/usersettings" target="_blank" style="color:var(--accent);">script.google.com/home/usersettings</a>
+        then try again.<br>
+        <span style="font-size:11px;">Script ID: <span id="umScriptId" style="font-family:'Share Tech Mono',monospace;"></span></span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="um-btn-row">
+        <button class="um-btn secondary" id="umCheckBtn" onclick="umCheckForUpdates()">Check for Updates</button>
+        <button class="um-btn primary"   id="umApplyBtn" style="display:none;" onclick="umApplyUpdate()">&#8679; Apply Update</button>
+      </div>
+      <div id="umStatus"></div>
+
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:#3a5070;font-family:'Share Tech Mono',monospace;">
+        SOURCE: <a href="https://github.com/fenman19/WorkspaceWatchdog" target="_blank" style="color:#3a5070;">github.com/fenman19/WorkspaceWatchdog</a>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -590,7 +721,7 @@ window.onload = function() {
     startSyncAgeTimer();
     startMapRefreshTimer();
     toggleAuto();
-    loadMapNotifications(); // check for updates + license status
+    loadMapNotifications();
     // Load map data then dismiss splash
     var origOnMain = onMain;
     onMain = function(d) {
@@ -616,49 +747,175 @@ function dismissSplash() {
   }, 650);
 }
 
-// ── Map notifications — update + license badges ──────────────────────
+// ── Map notifications + inline update modal ──────────────────────────
+
+// ── Notification badges ──
 function loadMapNotifications() {
   google.script.run
     .withSuccessHandler(function(n) {
       if (!n) return;
 
-      // ── Update available badge ──
-      var notifUpdate = document.getElementById('notifUpdate');
-      if (n.updateAvailable && notifUpdate) {
-        notifUpdate.classList.add('show');
-        notifUpdate.title = 'Update available: v' + n.latestVersion +
-          ' (installed: v' + n.installedVersion + ') — Click to update';
+      // Update badge
+      if (n.updateAvailable) {
+        var nb = document.getElementById('notifUpdate');
+        if (nb) {
+          nb.classList.add('show');
+          nb.title = 'Update available: v' + n.latestVersion +
+            ' (installed: v' + n.installedVersion + ')';
+        }
+        // Pre-fill modal version info
+        var umI = document.getElementById('umInstalled');
+        var umL = document.getElementById('umLatest');
+        if (umI) umI.textContent = 'v' + n.installedVersion;
+        if (umL) umL.textContent = 'v' + n.latestVersion;
       }
 
-      // ── License expiring badge ──
+      // License expiring badge
       var notifExpiring = document.getElementById('notifExpiring');
       var notifExpired  = document.getElementById('notifExpired');
       var expiringText  = document.getElementById('notifExpiringText');
-
       if (n.licenseExpired && notifExpired) {
         notifExpired.classList.add('show');
-        if (notifExpiring) notifExpiring.classList.remove('show');
       } else if (n.licenseExpiring && notifExpiring) {
         notifExpiring.classList.add('show');
         var days = n.licenseDaysLeft;
-        if (expiringText) {
-          expiringText.textContent = 'LICENSE EXPIRES IN ' + days + ' DAY' + (days === 1 ? '' : 'S');
-        }
-        // Escalate to red when under 14 days
+        if (expiringText) expiringText.textContent = 'LICENSE EXPIRES IN ' + days + ' DAY' + (days === 1 ? '' : 'S');
         if (days <= 14) {
-          notifExpiring.style.background = 'rgba(255,59,92,0.12)';
-          notifExpiring.style.color      = 'var(--red)';
-          notifExpiring.style.borderColor= 'var(--red)';
-          notifExpiring.style.boxShadow  = 'var(--glow-red)';
+          notifExpiring.style.background  = 'rgba(255,59,92,0.12)';
+          notifExpiring.style.color       = 'var(--red)';
+          notifExpiring.style.borderColor = 'var(--red)';
+          notifExpiring.style.boxShadow   = 'var(--glow-red)';
         }
       }
     })
-    .withFailureHandler(function() { /* silent — notifications are non-critical */ })
+    .withFailureHandler(function() { /* silent */ })
     .getMapNotifications();
 }
 
-function openUpdatesFromMap() {
-  google.script.run.showUpdatesPanel();
+// ── Modal open/close ──
+function openUpdateModal() {
+  document.getElementById('updateModal').classList.add('open');
+  // Auto-check if we haven't already populated it
+  var umI = document.getElementById('umInstalled');
+  if (umI && umI.textContent === 'Checking...') {
+    umCheckForUpdates();
+  }
+}
+
+function closeUpdateModal() {
+  document.getElementById('updateModal').classList.remove('open');
+}
+
+// Close on backdrop click
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('updateModal');
+  if (modal && e.target === modal) closeUpdateModal();
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeUpdateModal();
+});
+
+// ── Modal: check for updates ──
+function umSetStatus(msg, ok) {
+  var el = document.getElementById('umStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = ok === true ? 'ok' : ok === false ? 'bad' : '';
+}
+
+function umCheckForUpdates() {
+  var checkBtn = document.getElementById('umCheckBtn');
+  var applyBtn = document.getElementById('umApplyBtn');
+  if (checkBtn) checkBtn.disabled = true;
+  if (applyBtn) applyBtn.style.display = 'none';
+  document.getElementById('umChangelog').style.display = 'none';
+  document.getElementById('umApiWarning').style.display = 'none';
+  document.getElementById('umStatusIcon').innerHTML = '';
+  umSetStatus('Checking GitHub for updates...');
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (checkBtn) checkBtn.disabled = false;
+      if (result.error) { umSetStatus(result.error, false); return; }
+
+      var umI = document.getElementById('umInstalled');
+      var umL = document.getElementById('umLatest');
+      if (umI) umI.textContent = 'v' + result.installedVersion;
+      if (umL) umL.textContent = 'v' + result.latestVersion;
+
+      // Changelog
+      if (result.changelog && result.changelog.length) {
+        var list = document.getElementById('umChangelogList');
+        list.innerHTML = '';
+        result.changelog.forEach(function(item) {
+          var li = document.createElement('li');
+          li.textContent = item;
+          list.appendChild(li);
+        });
+        var rel = document.getElementById('umReleased');
+        if (rel && result.released) rel.textContent = 'Released ' + result.released;
+        document.getElementById('umChangelog').style.display = 'block';
+      }
+
+      var icon = document.getElementById('umStatusIcon');
+      if (result.upToDate) {
+        if (icon) icon.innerHTML = '<span style="color:var(--green);font-size:13px;">&#10003; Up to date</span>';
+        umSetStatus('You are running the latest version.', true);
+        // Hide update badge since we confirmed up to date
+        var nb = document.getElementById('notifUpdate');
+        if (nb) nb.classList.remove('show');
+      } else {
+        if (icon) icon.innerHTML = '<span style="color:var(--red);font-size:13px;">&#8679; Update available</span>';
+        umSetStatus('A new version is available. Review the changelog, then click Apply Update.', false);
+        if (applyBtn) applyBtn.style.display = '';
+        // Show update badge
+        var nb = document.getElementById('notifUpdate');
+        if (nb) nb.classList.add('show');
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (checkBtn) checkBtn.disabled = false;
+      umSetStatus('Error: ' + (err.message || String(err)), false);
+    })
+    .checkForUpdates();
+}
+
+// ── Modal: apply update ──
+function umApplyUpdate() {
+  var applyBtn = document.getElementById('umApplyBtn');
+  if (applyBtn) applyBtn.disabled = true;
+  document.getElementById('umApiWarning').style.display = 'none';
+  umSetStatus('Fetching files from GitHub and applying update...');
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      if (applyBtn) applyBtn.disabled = false;
+      if (result.ok) {
+        umSetStatus(result.message, true);
+        if (applyBtn) applyBtn.style.display = 'none';
+        var umI = document.getElementById('umInstalled');
+        if (umI) umI.textContent = 'v' + result.version;
+        var icon = document.getElementById('umStatusIcon');
+        if (icon) icon.innerHTML = '<span style="color:var(--green);font-size:13px;">&#10003; Up to date</span>';
+        // Hide update badge
+        var nb = document.getElementById('notifUpdate');
+        if (nb) nb.classList.remove('show');
+      } else if (result.message === 'ENABLE_API') {
+        var sid = document.getElementById('umScriptId');
+        if (sid) sid.textContent = result.scriptId || '';
+        document.getElementById('umApiWarning').style.display = 'block';
+        umSetStatus('Apps Script API not enabled. See instructions above.', false);
+      } else {
+        umSetStatus(result.message, false);
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (applyBtn) applyBtn.disabled = false;
+      umSetStatus('Error: ' + (err.message || String(err)), false);
+    })
+    .applyUpdate();
 }
 
 // ── Toolbar: filter drawer + auto-dim ────────────────────────────────
@@ -720,8 +977,6 @@ function setMode(m) {
   document.getElementById(m === 'main' ? 'btnMain' : m === 'active' ? 'btnActive' : 'btnSuspicious').classList.add('active');
   document.getElementById('selTime').style.display = m === 'active' ? 'none' : '';
   updateActiveNowScorecard();
-  // Immediately refresh globe arcs so they clear before new data arrives
-  if (globeInstance) feedGlobeData();
   reload();
 }
 
@@ -2221,20 +2476,18 @@ function buildGlobePoints() {
 function buildGlobeArcs() {
   var arcs = [];
 
-  // Arcs from suspicious mode — only show when IN suspicious mode
-  if (mode === 'suspicious') {
-    (suspArcs || []).forEach(function(a) {
-      if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
-      arcs.push({
-        startLat: a.from.lat, startLng: a.from.lon,
-        endLat:   a.to.lat,   endLng:   a.to.lon,
-        label:    (a.email || '') + (a.dist ? ' — ' + a.dist + ' mi' : ''),
-        color:    ['rgba(224,64,251,0.05)', '#e040fb']
-      });
+  // Arcs from suspicious mode data
+  (suspArcs || []).forEach(function(a) {
+    if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
+    arcs.push({
+      startLat: a.from.lat, startLng: a.from.lon,
+      endLat:   a.to.lat,   endLng:   a.to.lon,
+      label:    (a.email || '') + (a.dist ? ' — ' + a.dist + ' mi' : ''),
+      color:    ['rgba(224,64,251,0.05)', '#e040fb']   // magenta comet: fades in from transparent
     });
-  }
+  });
 
-  // Arcs from the overlay button — only show when overlay is active
+  // Arcs from the overlay button (may be different data set)
   if (suspOverlayActive && suspOverlayData) {
     (suspOverlayData.arcs || []).forEach(function(a) {
       if (!isFinite(a.from.lat) || !isFinite(a.to.lat)) return;
@@ -2242,7 +2495,7 @@ function buildGlobeArcs() {
         startLat: a.from.lat, startLng: a.from.lon,
         endLat:   a.to.lat,   endLng:   a.to.lon,
         label:    (a.email || '') + ' — overlay',
-        color:    ['rgba(224,64,251,0.05)', '#e040fb']
+        color:    ['rgba(224,64,251,0.05)', '#e040fb']   // same magenta comet
       });
     });
   }
