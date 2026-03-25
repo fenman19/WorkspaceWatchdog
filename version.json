@@ -1,8 +1,11 @@
 {
-  "version": "3.4.1",
+  "version": "3.4.2",
   "released": "2026-03-25",
   "changelog": [
-    "Fixed Settings panel displaying allowed map users as concatenated text after purge",
-    "Allowed users textarea now correctly splits on both comma and newline separators"
+    "Restored report functions missing from Code.gs — getReportData, getReportCSV, sendReportEmail, getReportFilterOptions",
+    "Report Generator autocomplete lists for users, OUs, and IPs now working again",
+    "Update badge moved to far left of title bar",
+    "Update modal now shows Close Map button instead of failed reload after applying update",
+    "Removed map launch prompt on sheet open"
   ]
 }
