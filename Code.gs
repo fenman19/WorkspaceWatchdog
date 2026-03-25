@@ -1,6 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.2.4
+ * Google Workspace Login Monitor v3.4.1
+ * Added Reports to LiveMap
  * Added updater to Toolbar in LiveMap
  * Redesigned toolbar for LiveMap
  * Added Globes to LiveMap
@@ -244,12 +245,14 @@ function onOpen() {
       .addItem('Test Chat Alert',        'testChatAlert')
       .addItem('Send Digest Now',        'sendDailyDigestNow')
       .addItem('Send Weekly Report Now', 'sendWeeklyReportNow')
+      .addItem('Trim Diagnostics Sheet', 'trimDiagnosticsSheetMenu')
       .addItem('Show Setup Status',      'showSetupStatus')
       .addItem('Reset Install State',    'resetInstallState')
     )
     .addSeparator()
     .addItem('Setup Wizard', 'showSetupWizard')
     .addToUi();
+
 }
 
 function install() {
@@ -408,6 +411,9 @@ function _cleanupAlertKeys_() {
         'Deleted ' + deleted + ' expired alert dedup key(s) from Script Properties.');
     }
   } catch(e) {}
+
+  // Also trim the Diagnostics sheet nightly
+  try { trimDiagnosticsSheet(); } catch(e) {}
 }
 
 /**
@@ -502,8 +508,12 @@ function showLiveMap() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Live Map');
 }
 
+
+
+
 /**
  * Returns the full-screen URL for the live map web app.
+ * Requires DEPLOYMENT_ID set in Script Properties.
  * Requires DEPLOYMENT_ID set in Script Properties.
  * Access is controlled by MAP_ALLOWED_USERS (comma-separated emails).
  * Called from LiveMap.html to build the "Open Full Screen" link.
@@ -566,6 +576,14 @@ function showSettingsPanel() {
     .setWidth(680)
     .setHeight(820);
   SpreadsheetApp.getUi().showModalDialog(html, 'Workspace Watchdog — Settings');
+}
+
+function trimDiagnosticsSheetMenu() {
+  const removed = trimDiagnosticsSheet();
+  SpreadsheetApp.getActive().toast(
+    'Diagnostics trimmed — ' + (removed || 0) + ' old rows removed.',
+    'Workspace Watchdog', 5
+  );
 }
 
 function showSetupStatus() {
@@ -1697,8 +1715,11 @@ function _isAlertedPermanently_(key) {
   const p = PropertiesService.getScriptProperties();
   const k = 'ww_alerted_' + String(key).replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 200);
   const found = p.getProperty(k) !== null;
-  _logDiagnostics('permDedup/check', new Date(), new Date(), found ? 1 : 0, 0,
-    (found ? 'SUPPRESSED' : 'NOT FOUND') + ': ' + k.slice(0, 120));
+  // Only log NOT FOUND (new potential alert) — suppress routine SUPPRESSED noise
+  if (!found) {
+    _logDiagnostics('permDedup/check', new Date(), new Date(), 0, 0,
+      'NOT FOUND: ' + k.slice(0, 120));
+  }
   return found;
 }
 
@@ -3775,6 +3796,55 @@ function _logDiagnostics(triggerName, startD, endD, parsed, appended, notes, ext
   sh.getRange(sh.getLastRow()+1,1,1,DIAG_HEADERS.length).setValues([ base.concat(tail) ]);
 }
 
+/**
+ * Trims the Diagnostics sheet to keep only the last KEEP_DIAG_DAYS days.
+ * Called nightly by _cleanupAlertKeys_. Default: 7 days.
+ * Also removes high-volume noise rows (permDedup/check SUPPRESSED) if any slipped through.
+ */
+function trimDiagnosticsSheet() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(CONFIG.DIAG);
+  if (!sh) return;
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return;
+
+  const keepDays = Number(
+    PropertiesService.getScriptProperties().getProperty('KEEP_DIAG_DAYS') || 7
+  );
+  const cutoff = new Date(Date.now() - keepDays * 24 * 60 * 60 * 1000);
+
+  const data = sh.getRange(2, 1, lastRow - 1, 2).getValues(); // col A=trigger, col B=startTime
+  var deleteRows = [];
+
+  for (var i = data.length - 1; i >= 0; i--) {
+    const rowDate = new Date(data[i][1]);
+    if (isNaN(rowDate.getTime())) continue;
+    if (rowDate < cutoff) {
+      deleteRows.push(i + 2); // 1-based, +1 for header
+    }
+  }
+
+  // Delete from bottom up to preserve row indices
+  deleteRows.sort(function(a, b) { return b - a; });
+  // Batch delete in chunks for performance
+  var i = 0;
+  while (i < deleteRows.length) {
+    var start = deleteRows[i];
+    var count = 1;
+    while (i + count < deleteRows.length && deleteRows[i + count] === start - count) {
+      count++;
+    }
+    sh.deleteRows(start - count + 1, count);
+    i += count;
+  }
+
+  const removed = deleteRows.length;
+  if (removed > 0) {
+    _logDiagnostics('trimDiagnostics', new Date(), new Date(), removed, 0,
+      'Removed ' + removed + ' rows older than ' + keepDays + ' days. Cutoff: ' + cutoff.toISOString());
+  }
+  return removed;
+}
+
 
 
 
@@ -4743,6 +4813,14 @@ function checkForUpdates() {
  * project using the Apps Script API. Returns { ok, message }.
  * Called from the Setup Wizard via google.script.run.
  */
+function getVersionInfo() {
+  try {
+    const resp = UrlFetchApp.fetch(UPDATER.VERSION_URL, { muteHttpExceptions: true, deadline: 5 });
+    if (resp.getResponseCode() === 200) return JSON.parse(resp.getContentText());
+  } catch(e) {}
+  return null;
+}
+
 function applyUpdate() {
   try {
     // 1. Fetch latest version info first
@@ -4916,335 +4994,4 @@ function showUpdatesPanel() {
     .setWidth(620)
     .setHeight(580);
   SpreadsheetApp.getUi().showModalDialog(html, 'Workspace Watchdog — Updates');
-}
-
-// ============================================================
-// REPORTS — On-demand security reports from the Live Map
-// ============================================================
-
-/**
- * Master report function — fetches data from Main + Suspicious sheets
- * filtered by type, date range, and optional filter value.
- * reportType: 'user' | 'ou' | 'ip' | 'suspicious' | 'summary'
- * filterValue: email / OU path / IP address (empty = all)
- * daysBack: number of days to look back (default 7)
- */
-function getReportData(reportType, filterValue, daysBack) {
-  _applyRuntimeConfig_();
-  const ss      = SpreadsheetApp.getActive();
-  const shMain  = ss.getSheetByName(CONFIG.MAIN);
-  const shSusp  = ss.getSheetByName(CONFIG.SUSPICIOUS);
-  const days    = Number(daysBack) || 7;
-  const cutoff  = new Date(Date.now() - days * 24 * 3600000);
-  const filter  = String(filterValue || '').trim().toLowerCase();
-
-  // ── Read Main sheet ──────────────────────────────────────────
-  const mainRows = [];
-  if (shMain && shMain.getLastRow() > 1) {
-    const data = shMain.getRange(2, 1, shMain.getLastRow() - 1, 17).getValues();
-    for (const r of data) {
-      const ts      = r[0];
-      const email   = String(r[1]  || '').toLowerCase();
-      const evName  = String(r[2]  || '');
-      const ip      = String(r[3]  || '');
-      const city    = String(r[4]  || '');
-      const region  = String(r[5]  || '');
-      const country = String(r[6]  || '');
-      const isp     = String(r[7]  || '');
-      const ouPath  = String(r[12] || '');
-      const outside = r[14] === true || r[14] === 'TRUE' || r[14] === 1;
-      const topOU   = String(r[16] || '');
-
-      const rowDate = ts instanceof Date ? ts : new Date(ts);
-      if (isNaN(rowDate.getTime()) || rowDate < cutoff) continue;
-
-      // Apply filter
-      if (filter) {
-        if (reportType === 'user' && email !== filter) continue;
-        if (reportType === 'ou'   && !ouPath.toLowerCase().startsWith(filter)) continue;
-        if (reportType === 'ip'   && ip !== filter) continue;
-      }
-
-      mainRows.push({ ts: _fmtCT_(rowDate), email, evName, ip, city, region, country, isp, ouPath, topOU, outside });
-    }
-  }
-
-  // ── Read Suspicious sheet ────────────────────────────────────
-  // For OU reports: build a set of emails from mainRows so we only
-  // include suspicious events for users in that OU
-  const allowedEmails = reportType === 'ou'
-    ? new Set(mainRows.map(r => r.email))
-    : null;
-
-  const suspRows = [];
-  if (shSusp && shSusp.getLastRow() > 1) {
-    const data = shSusp.getRange(2, 1, shSusp.getLastRow() - 1, 12).getValues();
-    for (const r of data) {
-      const ts      = r[0];
-      const email   = String(r[1] || '').toLowerCase();
-      const reason  = String(r[2] || '');
-      const details = String(r[3] || '');
-      const fromCity= String(r[4] || '');
-      const toCity  = String(r[8] || '');
-
-      const rowDate = ts instanceof Date ? ts : new Date(ts);
-      if (isNaN(rowDate.getTime()) || rowDate < cutoff) continue;
-
-      // Apply filter
-      if (filter) {
-        if (reportType === 'user' && email !== filter) continue;
-        if (reportType === 'ip'   && !details.includes(filter)) continue;
-      }
-      // For OU reports — only include suspicious events for users in that OU
-      if (allowedEmails && !allowedEmails.has(email)) continue;
-
-      suspRows.push({ ts: _fmtCT_(rowDate), email, reason, details, fromCity, toCity });
-    }
-  }
-
-  // ── Build summary stats ──────────────────────────────────────
-  const totalEvents  = mainRows.length;
-  const successCount = mainRows.filter(r => r.evName === 'login_success').length;
-  const failCount    = mainRows.filter(r => r.evName === 'login_failure').length;
-  // Outside US: combine Main sheet flag + Suspicious sheet Outside US events
-  const outsideFromMain = mainRows.filter(r => r.outside).length;
-  const outsideFromSusp = suspRows.filter(r => r.reason === 'Outside US').length;
-  const outsideCount = Math.max(outsideFromMain, outsideFromSusp);
-  const uniqueUsers  = new Set(mainRows.map(r => r.email)).size;
-  const uniqueIPs    = new Set(mainRows.map(r => r.ip)).size;
-  const failRate     = totalEvents > 0 ? ((failCount / (successCount + failCount || 1)) * 100).toFixed(1) : '0.0';
-
-  // Top failed users
-  const failMap = {};
-  mainRows.filter(r => r.evName === 'login_failure').forEach(r => {
-    failMap[r.email] = (failMap[r.email] || 0) + 1;
-  });
-  const topFailed = Object.entries(failMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
-
-  // Top IPs
-  const ipMap = {};
-  mainRows.forEach(r => { if (r.ip) ipMap[r.ip] = (ipMap[r.ip] || 0) + 1; });
-  const topIPs = Object.entries(ipMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
-
-  // OU breakdown
-  const ouMap = {};
-  mainRows.forEach(r => { if (r.topOU) ouMap[r.topOU] = (ouMap[r.topOU] || 0) + 1; });
-  const ouBreakdown = Object.entries(ouMap).sort((a,b) => b[1]-a[1]).slice(0, 15);
-
-  return {
-    reportType, filterValue, daysBack: days,
-    generatedAt: _fmtCT_(new Date()),
-    totalEvents, successCount, failCount, failRate,
-    outsideCount, uniqueUsers, uniqueIPs,
-    topFailed, topIPs, ouBreakdown,
-    rows:     mainRows,
-    suspRows: suspRows
-  };
-}
-
-/** Formats a date in Central Time */
-function _fmtCT_(d) {
-  try {
-    return Utilities.formatDate(d instanceof Date ? d : new Date(d),
-      'America/Chicago', 'yyyy-MM-dd HH:mm:ss');
-  } catch(e) { return String(d); }
-}
-
-/**
- * Sends a formatted HTML report email.
- * Called from LiveMap via google.script.run.
- */
-function sendReportEmail(reportType, filterValue, daysBack, recipientEmail) {
-  try {
-    const data  = getReportData(reportType, filterValue, daysBack);
-    const owner = Session.getEffectiveUser().getEmail();
-    const to    = recipientEmail && recipientEmail.trim() ? recipientEmail.trim() : owner;
-    const html  = _buildReportHtml_(data);
-    const labels = { user: 'User', ou: 'OU', ip: 'IP', suspicious: 'Suspicious', summary: 'Summary' };
-    const label  = labels[reportType] || 'Security';
-    const filter = filterValue ? ' — ' + filterValue : '';
-    const subject = 'Workspace Watchdog ' + label + ' Report' + filter +
-                    ' (' + daysBack + 'd) — ' + data.generatedAt.slice(0,10);
-    GmailApp.sendEmail(to, subject, '', { htmlBody: html, name: 'Workspace Watchdog' });
-    return { ok: true, message: 'Report sent to ' + to };
-  } catch(e) {
-    return { ok: false, message: e.message || String(e) };
-  }
-}
-
-/**
- * Returns report data formatted as CSV string for client-side download.
- */
-function getReportCSV(reportType, filterValue, daysBack) {
-  try {
-    const data = getReportData(reportType, filterValue, daysBack);
-    const lines = [];
-
-    if (reportType === 'suspicious') {
-      lines.push(['Timestamp','Email','Reason','Details','From City','To City'].join(','));
-      data.suspRows.forEach(function(r) {
-        lines.push([r.ts, r.email, r.reason, r.details, r.fromCity, r.toCity]
-          .map(function(v) { return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(','));
-      });
-    } else {
-      lines.push(['Timestamp','Email','Event','IP','ISP','City','Region','Country','OU','Outside US'].join(','));
-      data.rows.forEach(function(r) {
-        lines.push([r.ts, r.email, r.evName, r.ip, r.isp, r.city, r.region, r.country, r.ouPath, r.outside ? 'Yes' : '']
-          .map(function(v) { return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(','));
-      });
-    }
-    return { ok: true, csv: lines.join('\n'), filename: 'ww_report_' + reportType + '_' + new Date().toISOString().slice(0,10) + '.csv' };
-  } catch(e) {
-    return { ok: false, message: e.message || String(e) };
-  }
-}
-
-/**
- * Returns list of unique users, OUs, and IPs from Main sheet for autocomplete.
- */
-function getReportFilterOptions() {
-  _applyRuntimeConfig_();
-  const ss     = SpreadsheetApp.getActive();
-  const shMain = ss.getSheetByName(CONFIG.MAIN);
-  if (!shMain || shMain.getLastRow() <= 1) return { users: [], ous: [], ips: [] };
-
-  const data = shMain.getRange(2, 1, Math.min(shMain.getLastRow()-1, 5000), 13).getValues();
-  const users = new Set(), ous = new Set(), ips = new Set();
-
-  for (const r of data) {
-    if (r[1]) users.add(String(r[1]).toLowerCase().trim());
-    if (r[3]) ips.add(String(r[3]).trim());
-    if (r[12]) ous.add(String(r[12]).trim());
-  }
-
-  return {
-    users: Array.from(users).sort().slice(0, 200),
-    ous:   Array.from(ous).filter(Boolean).sort().slice(0, 100),
-    ips:   Array.from(ips).sort().slice(0, 200)
-  };
-}
-
-/** Builds the HTML email for a report */
-function _buildReportHtml_(d) {
-  const typeLabels = { user: 'User Report', ou: 'OU Report', ip: 'IP Report',
-                       suspicious: 'Suspicious Events', summary: 'Summary Report' };
-  const title  = typeLabels[d.reportType] || 'Security Report';
-  const filter = d.filterValue ? '<br><span style="font-size:13px;color:#9aa0a6;">' + d.filterValue + '</span>' : '';
-
-  function statBox(label, val, color) {
-    return '<td style="text-align:center;padding:12px 16px;">' +
-      '<div style="font-size:26px;font-weight:700;color:' + color + ';line-height:1;">' + val + '</div>' +
-      '<div style="font-size:11px;color:#8ab4f8;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;">' + label + '</div>' +
-      '</td>';
-  }
-
-  function sectionHdr(title) {
-    return '<tr><td colspan="2" style="padding:16px 24px 6px;">' +
-      '<div style="font-size:11px;font-weight:700;color:#8ab4f8;text-transform:uppercase;' +
-      'letter-spacing:.08em;border-bottom:1px solid #2a3f5f;padding-bottom:6px;">' + title + '</div></td></tr>';
-  }
-
-  // Top failed users table
-  var topFailedRows = d.topFailed.map(function(e) {
-    var clr = e[1] >= 10 ? '#ef5350' : e[1] >= 5 ? '#ff9800' : '#9aa0a6';
-    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
-      '<td style="padding:6px 12px;font-size:12px;color:#e8eaed;">' + e[0] + '</td>' +
-      '<td style="padding:6px 12px;font-size:12px;font-weight:700;color:' + clr + ';text-align:right;">' + e[1] + '</td>' +
-      '</tr>';
-  }).join('');
-
-  // Recent suspicious events
-  var suspHtml = d.suspRows.slice(0, 20).map(function(r) {
-    var clr = r.reason === 'Impossible Travel' ? '#ff6d00' :
-              r.reason === 'Login Burst' ? '#ffaa00' : '#f44336';
-    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
-      '<td style="padding:6px 12px;font-size:11px;color:#9aa0a6;white-space:nowrap;">' + r.ts.slice(0,16) + '</td>' +
-      '<td style="padding:6px 12px;font-size:12px;color:#e8eaed;">' + r.email + '</td>' +
-      '<td style="padding:6px 12px;font-size:12px;font-weight:700;color:' + clr + ';">' + r.reason + '</td>' +
-      '<td style="padding:6px 12px;font-size:11px;color:#9aa0a6;">' + r.details.slice(0,60) + '</td>' +
-      '</tr>';
-  }).join('');
-
-  // Recent events table (user/ip/ou reports)
-  var recentRows = d.rows.slice(0, 50).map(function(r) {
-    var clr = r.evName === 'login_failure' ? '#ef5350' :
-              r.outside ? '#f44336' : '#81c995';
-    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
-      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;white-space:nowrap;">' + r.ts.slice(0,16) + '</td>' +
-      '<td style="padding:5px 10px;font-size:11px;color:#e8eaed;">' + r.email + '</td>' +
-      '<td style="padding:5px 10px;font-size:11px;font-weight:700;color:' + clr + ';">' + r.evName.replace('login_','') + '</td>' +
-      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;">' + [r.city,r.country].filter(Boolean).join(', ') + '</td>' +
-      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;">' + r.ip + '</td>' +
-      '</tr>';
-  }).join('');
-
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
-    '<body style="margin:0;padding:0;background:#0f1923;font-family:Arial,sans-serif;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1923;padding:24px 0;">' +
-    '<tr><td align="center">' +
-    '<table width="680" cellpadding="0" cellspacing="0" style="background:#152232;border-radius:8px;overflow:hidden;max-width:680px;">' +
-
-    // Header
-    '<tr><td style="background:linear-gradient(135deg,#0a1628 0%,#0d1f3c 50%,#0a1628 100%);padding:24px;text-align:center;">' +
-    '<div style="font-size:22px;font-weight:700;color:#00c8ff;letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 20px rgba(0,200,255,0.5);">Workspace Watchdog</div>' +
-    '<div style="font-size:18px;font-weight:700;color:#e8eaed;margin-top:6px;">' + title + filter + '</div>' +
-    '<div style="font-size:12px;color:#9aa0a6;margin-top:4px;">Last ' + d.daysBack + ' days &mdash; Generated ' + d.generatedAt + '</div>' +
-    '</td></tr>' +
-
-    // Stat boxes
-    '<tr><td style="padding:20px 24px 8px;">' +
-    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1e3a5f;border-radius:6px;"><tr>' +
-    statBox('Total Events',  d.totalEvents,  '#8ab4f8') +
-    statBox('Successful',    d.successCount, '#81c995') +
-    statBox('Failed',        d.failCount,    d.failCount > 0 ? '#ef5350' : '#81c995') +
-    statBox('Fail Rate',     d.failRate + '%', parseFloat(d.failRate) > 10 ? '#ef5350' : '#81c995') +
-    statBox('Outside US',   d.outsideCount,  d.outsideCount > 0 ? '#f44336' : '#81c995') +
-    statBox('Unique Users', d.uniqueUsers,   '#8ab4f8') +
-    '</tr></table></td></tr>' +
-
-    // Suspicious events section
-    (d.suspRows.length ? [
-      sectionHdr('Suspicious Events (' + d.suspRows.length + ')'),
-      '<tr><td colspan="2" style="padding:0 24px 12px;">',
-      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">',
-      '<tr style="background:#1e3a5f;"><th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">TIME</th>',
-      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>',
-      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">REASON</th>',
-      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">DETAILS</th></tr>',
-      suspHtml,
-      '</table></td></tr>'
-    ].join('') : '') +
-
-    // Top failed users
-    (d.topFailed.length ? [
-      sectionHdr('Top Failed Login Accounts'),
-      '<tr><td colspan="2" style="padding:0 24px 12px;">',
-      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">',
-      '<tr style="background:#1e3a5f;"><th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>',
-      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:right;">FAILURES</th></tr>',
-      topFailedRows,
-      '</table></td></tr>'
-    ].join('') : '') +
-
-    // Recent activity (for user/ip/ou reports)
-    (d.rows.length && d.reportType !== 'summary' ? [
-      sectionHdr('Recent Activity (last 50 events)'),
-      '<tr><td colspan="2" style="padding:0 24px 16px;">',
-      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">',
-      '<tr style="background:#1e3a5f;">',
-      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">TIME</th>',
-      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>',
-      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">EVENT</th>',
-      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">LOCATION</th>',
-      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">IP</th></tr>',
-      recentRows,
-      '</table></td></tr>'
-    ].join('') : '') +
-
-    // Footer
-    '<tr><td style="padding:16px 24px;text-align:center;border-top:1px solid #1e3a5f;">' +
-    '<div style="font-size:11px;color:#3a5070;">Generated by Workspace Watchdog &mdash; workspacewatchdog.com</div>' +
-    '</td></tr>' +
-
-    '</table></td></tr></table></body></html>';
 }
