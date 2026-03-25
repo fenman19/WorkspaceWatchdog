@@ -47,6 +47,11 @@
       font-family: 'Share Tech Mono', monospace; font-size: 10px;
       color: var(--text2); display: flex; align-items: center; gap: 8px;
     }
+    /* ── Override MarkerCluster default blue/yellow styles ─────────── */
+    .marker-cluster { background: transparent !important; }
+    .marker-cluster div { background: transparent !important; margin: 0 !important; width: 100% !important; height: 100% !important; }
+    .marker-cluster span { display: none !important; }
+
     /* ── Main toolbar ───────────────────────────────────────────────── */
     #toolbar {
       background: linear-gradient(90deg, #060a14f2 0%, #0a1020f2 100%);
@@ -415,6 +420,39 @@
     #chartModalClose:hover { color: var(--text); }
     #chartModalCanvas { width: 100% !important; flex: 1; min-height: 0; }
     .chart-wrap canvas { height: 170px !important; width: 100% !important; }
+
+    /* ── Reports modal ──────────────────────────────────────────────────── */
+    #reportsModal { display: none; position: fixed; inset: 0; background: rgba(5,8,16,0.85); z-index: 99000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+    #reportsModal.open { display: flex; }
+    #reportsBox { background: #0b1122; border: 1px solid var(--border); border-radius: 12px; width: 560px; max-width: 94vw; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 0 40px rgba(0,200,255,0.1); overflow: hidden; }
+    #reportsHeader { background: linear-gradient(90deg, #060a14 0%, #0a1528 100%); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    #reportsHeader .rm-title { font-family: 'Share Tech Mono', monospace; font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .12em; text-transform: uppercase; text-shadow: var(--glow-blue); }
+    #reportsClose { background: none; border: none; color: var(--text2); font-size: 18px; cursor: pointer; padding: 0 4px; line-height: 1; transition: color .2s; }
+    #reportsClose:hover { color: var(--red); }
+    #reportsBody { padding: 16px; overflow-y: auto; flex: 1; }
+    .rm-label { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; display: block; }
+    .rm-select, .rm-input { width: 100%; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-family: 'Rajdhani', sans-serif; transition: border-color .2s; box-sizing: border-box; }
+    .rm-select:focus, .rm-input:focus { outline: none; border-color: var(--accent); }
+    .rm-row { display: flex; gap: 10px; margin-bottom: 14px; }
+    .rm-row > div { flex: 1; }
+    .rm-section { margin-bottom: 14px; }
+    .rm-btn-row { display: flex; gap: 8px; margin-top: 4px; }
+    .rm-btn { flex: 1; border: none; border-radius: 999px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'Rajdhani', sans-serif; letter-spacing: .04em; transition: opacity .2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .rm-btn:hover { opacity: 0.85; }
+    .rm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .rm-btn.primary   { background: var(--accent); color: #000; }
+    .rm-btn.secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .rm-btn.green     { background: #188038; color: #fff; }
+    #rmStatus { font-family: 'Share Tech Mono', monospace; font-size: 11px; margin-top: 10px; min-height: 14px; line-height: 1.4; text-align: center; }
+    #rmStatus.ok  { color: var(--green); }
+    #rmStatus.bad { color: var(--red); }
+    .rm-stat-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+    .rm-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; text-align: center; flex: 1; min-width: 70px; }
+    .rm-stat-val { font-size: 20px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
+    .rm-stat-lbl { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
+    #rmFilterWrap { display: none; margin-bottom: 14px; }
+    #rmEmailWrap  { display: none; margin-bottom: 14px; }
+    .rm-preview { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); line-height: 1.6; display: none; }
   </style>
 </head>
 <body>
@@ -492,11 +530,11 @@
   <!-- Centered scorecards — absolutely positioned so they stay centered regardless of controls on either side -->
   <div id="tbScoreGroup">
     <div class="tb-sc">
-      <span class="tb-sc-label">Rows</span>
+      <span class="tb-sc-label">Events</span>
       <span class="tb-sc-val sc-accent" id="scRows">-</span>
     </div>
     <div class="tb-sc">
-      <span class="tb-sc-label">Emails</span>
+      <span class="tb-sc-label">Accounts</span>
       <span class="tb-sc-val sc-blue" id="scEmails">-</span>
     </div>
     <div class="tb-sc">
@@ -537,6 +575,10 @@
   </select>
 
   <div class="tb-sep"></div>
+
+  <!-- Gear — opens filter drawer -->
+  <!-- Reports button -->
+  <button id="btnReports" onclick="openReportsModal()" title="Generate Reports" style="background:none;border:1px solid transparent;border-radius:6px;color:var(--text2);cursor:pointer;font-size:14px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s;flex-shrink:0;">&#128202;</button>
 
   <!-- Gear — opens filter drawer -->
   <button id="btnGear" onclick="toggleFilterDrawer()" title="Filters &amp; Tools">&#9881;</button>
@@ -731,6 +773,171 @@ function dismissSplash() {
   }, 650);
 }
 
+// ── Reports Modal ─────────────────────────────────────────────────────────────
+
+var _rmFilterOptions = null;
+
+function openReportsModal() {
+  document.getElementById('reportsModal').classList.add('open');
+  document.getElementById('rmPreviewArea').style.display = 'none';
+  document.getElementById('rmEmailWrap').style.display = 'none';
+  rmSetStatus('');
+  if (!_rmFilterOptions) {
+    google.script.run
+      .withSuccessHandler(function(opts) {
+        _rmFilterOptions = opts;
+        rmTypeChanged();
+      })
+      .withFailureHandler(function() { _rmFilterOptions = { users: [], ous: [], ips: [] }; })
+      .getReportFilterOptions();
+  } else {
+    rmTypeChanged();
+  }
+}
+
+function closeReportsModal() {
+  document.getElementById('reportsModal').classList.remove('open');
+}
+
+document.addEventListener('click', function(e) {
+  if (e.target === document.getElementById('reportsModal')) closeReportsModal();
+});
+
+function rmTypeChanged() {
+  var type     = document.getElementById('rmType').value;
+  var wrap     = document.getElementById('rmFilterWrap');
+  var label    = document.getElementById('rmFilterLabel');
+  var input    = document.getElementById('rmFilter');
+  var datalist = document.getElementById('rmFilterList');
+  document.getElementById('rmPreviewArea').style.display = 'none';
+  document.getElementById('rmEmailWrap').style.display = 'none';
+  rmSetStatus('');
+  if (type === 'user' || type === 'ou' || type === 'ip') {
+    wrap.style.display = 'block';
+    var opts  = _rmFilterOptions || { users: [], ous: [], ips: [] };
+    var items = type === 'user' ? opts.users : type === 'ou' ? opts.ous : opts.ips;
+    label.textContent  = type === 'user' ? 'User Email' : type === 'ou' ? 'OU Path' : 'IP Address';
+    input.placeholder  = type === 'user' ? 'user@domain.com' : type === 'ou' ? '/Staff' : '192.168.1.1';
+    datalist.innerHTML = items.map(function(v) { return '<option value="' + esc(v) + '">'; }).join('');
+    input.value = '';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function rmSetStatus(msg, ok) {
+  var el = document.getElementById('rmStatus');
+  el.textContent = msg || '';
+  el.className = ok === true ? 'ok' : ok === false ? 'bad' : '';
+}
+
+function rmPreview() {
+  var type   = document.getElementById('rmType').value;
+  var days   = document.getElementById('rmDays').value;
+  var filter = document.getElementById('rmFilter').value.trim();
+  var btn    = document.getElementById('rmPreviewBtn');
+  if ((type === 'user' || type === 'ou' || type === 'ip') && !filter) {
+    rmSetStatus('Please enter a filter value first.', false);
+    return;
+  }
+  btn.disabled = true;
+  rmSetStatus('Loading report data...');
+  google.script.run
+    .withSuccessHandler(function(data) {
+      btn.disabled = false;
+      if (!data) { rmSetStatus('No data returned.', false); return; }
+      var statRow = document.getElementById('rmStatRow');
+      statRow.innerHTML = [
+        rmStat(data.totalEvents,       '#8ab4f8', 'Events'),
+        rmStat(data.successCount,      '#00e676', 'Success'),
+        rmStat(data.failCount,         data.failCount > 0 ? '#ef5350' : '#00e676', 'Failed'),
+        rmStat(data.outsideCount,      data.outsideCount > 0 ? '#f44336' : '#00e676', 'Outside US'),
+        rmStat(data.uniqueUsers,       '#8ab4f8', 'Users'),
+        rmStat(data.suspRows.length,   data.suspRows.length > 0 ? '#ff6d00' : '#00e676', 'Suspicious')
+      ].join('');
+      var lines = [];
+      if (data.topFailed.length) {
+        lines.push('TOP FAILED ACCOUNTS:');
+        data.topFailed.slice(0, 5).forEach(function(e) {
+          lines.push('  ' + e[0] + ' \u2014 ' + e[1] + ' failures');
+        });
+      }
+      if (data.suspRows.length) {
+        lines.push('SUSPICIOUS EVENTS: ' + data.suspRows.length);
+        data.suspRows.slice(0, 3).forEach(function(r) {
+          lines.push('  ' + r.reason + ' \u2014 ' + r.email);
+        });
+      }
+      document.getElementById('rmPreviewText').textContent = lines.join('\n');
+      document.getElementById('rmPreviewArea').style.display = 'block';
+      document.getElementById('rmEmailWrap').style.display = 'block';
+      rmSetStatus('Preview loaded \u2014 ' + data.totalEvents + ' events found.', true);
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false;
+      rmSetStatus('Error: ' + (err.message || String(err)), false);
+    })
+    .getReportData(type, filter, parseInt(days));
+}
+
+function rmStat(val, color, label) {
+  return '<div class="rm-stat">' +
+    '<div class="rm-stat-val" style="color:' + color + ';">' + val + '</div>' +
+    '<div class="rm-stat-lbl">' + label + '</div>' +
+    '</div>';
+}
+
+function rmDownloadCSV() {
+  var type   = document.getElementById('rmType').value;
+  var days   = document.getElementById('rmDays').value;
+  var filter = document.getElementById('rmFilter').value.trim();
+  if ((type === 'user' || type === 'ou' || type === 'ip') && !filter) {
+    rmSetStatus('Please enter a filter value first.', false);
+    return;
+  }
+  document.getElementById('rmCsvBtn').disabled = true;
+  rmSetStatus('Generating CSV...');
+  google.script.run
+    .withSuccessHandler(function(result) {
+      document.getElementById('rmCsvBtn').disabled = false;
+      if (!result.ok) { rmSetStatus(result.message, false); return; }
+      var blob = new Blob([result.csv], { type: 'text/csv' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href = url; a.download = result.filename;
+      a.click(); URL.revokeObjectURL(url);
+      rmSetStatus('CSV downloaded \u2014 ' + result.filename, true);
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('rmCsvBtn').disabled = false;
+      rmSetStatus('Error: ' + (err.message || String(err)), false);
+    })
+    .getReportCSV(type, filter, parseInt(days));
+}
+
+function rmSendEmail() {
+  var type      = document.getElementById('rmType').value;
+  var days      = document.getElementById('rmDays').value;
+  var filter    = document.getElementById('rmFilter').value.trim();
+  var recipient = document.getElementById('rmEmail').value.trim();
+  if ((type === 'user' || type === 'ou' || type === 'ip') && !filter) {
+    rmSetStatus('Please enter a filter value first.', false);
+    return;
+  }
+  document.getElementById('rmEmailBtn').disabled = true;
+  rmSetStatus('Sending report email...');
+  google.script.run
+    .withSuccessHandler(function(result) {
+      document.getElementById('rmEmailBtn').disabled = false;
+      rmSetStatus(result.message, result.ok);
+    })
+    .withFailureHandler(function(err) {
+      document.getElementById('rmEmailBtn').disabled = false;
+      rmSetStatus('Error: ' + (err.message || String(err)), false);
+    })
+    .sendReportEmail(type, filter, parseInt(days), recipient);
+}
+
 // ── Toolbar: filter drawer + auto-dim ────────────────────────────────
 // ── View mode dropdown ───────────────────────────────────────────────
 var _viewDropOpen = false;
@@ -902,7 +1109,7 @@ function mkCluster() {
               : failRate > 0.3 ? '#f44336'  // >30% failures = red
               : failRate > 0.1 ? '#ffaa00'  // 10-30% failures = amber
               : hasFail        ? '#ffaa00'  // any failures = amber
-              :                  '#00c8ff'; // all clean = cyan
+              :                  '#00c800'; // all clean = green
       var sz = n > 100 ? 46 : n > 20 ? 38 : 30;
       return L.divIcon({ html: '<div style="background:' + col + ';width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#000;border:2px solid rgba(255,255,255,.3);">' + n + '</div>', className: '', iconSize: [sz,sz], iconAnchor: [sz/2,sz/2] });
     }
@@ -922,7 +1129,7 @@ function onMain(d) {
     var isFailure = r.evName === 'login_failure';
     var col = r.outside    ? '#f44336'   // outside US = red
             : isFailure    ? '#e53935'   // failure = dark red
-            : isSuccess    ? '#00c8ff'   // success = cyan
+            : isSuccess    ? '#00c800'   // success = green
             :                '#00bcd4';  // other = blue
     var isNewEvent = isNew(r.ts);
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col, isNewEvent ? 13 : 10) });
@@ -972,7 +1179,7 @@ function onActive(d) {
   clusterGroup = mkCluster();
   allRows.forEach(function(r) {
     if (!isFinite(r.lat) || !isFinite(r.lon)) return;
-    var col = r.outside ? '#f44336' : '#00c8ff';  // outside=red, normal=cyan
+    var col = r.outside ? '#f44336' : '#00c800';  // outside=red, normal=green
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col, 12) });
     m.opt_fail = false; m.opt_out = r.outside;
     m.on('click', function() { showActiveDetail(r); });
@@ -1042,7 +1249,7 @@ function onMainFiltered(rows) {
     var isFailure = r.evName === 'login_failure';
     var col = r.outside    ? '#f44336'   // outside US = red
             : isFailure    ? '#e53935'   // failure = dark red
-            : isSuccess    ? '#00c8ff'   // success = cyan
+            : isSuccess    ? '#00c800'   // success = green
             :                '#00bcd4';  // other = blue
     var m = L.marker([r.lat, r.lon], { icon: mkIcon(col) });
     m.opt_fail  = isFailure;
@@ -2059,10 +2266,8 @@ function updateGlobeAlertPanel() {
   var rows = (suspOverlayData.rows || []).slice(); // copy
   // Sort: Impossible Travel first, then Burst, then Outside US, then by time desc
   var order = { 'Impossible Travel': 0, 'Login Burst': 1, 'Outside US': 2 };
+  // Sort newest first (reverse chronological)
   rows.sort(function(a, b) {
-    var oa = order[a.reason] !== undefined ? order[a.reason] : 3;
-    var ob = order[b.reason] !== undefined ? order[b.reason] : 3;
-    if (oa !== ob) return oa - ob;
     return String(b.ts || '').localeCompare(String(a.ts || ''));
   });
 
@@ -2159,8 +2364,8 @@ var GLOBE_COLORS = {
   burst:   '#ffaa00',  // Login Burst — yellow (warning)
   outside: '#f44336',  // Outside US — red (foreign login)
   failure: '#e53935',  // Login failure — dark red
-  success: '#00c8ff',  // Normal success — cyan (accent)
-  other:   '#00bcd4'   // Other events — blue
+  success: '#00c800',  // Normal success — green
+  other:   '#00a000'   // Other events — darker green
 };
 
 function toggleGlobeView() {
@@ -2655,6 +2860,62 @@ function changeGlobeTexture(tex) {
     <button id="chartModalClose" onclick="closeChartModal({target:{id:'chartModalClose'}})">&#10005;</button>
     <div id="chartModalTitle"></div>
     <canvas id="chartModalCanvas"></canvas>
+  </div>
+</div>
+
+
+<!-- ── Reports Modal ─────────────────────────────────────────────────── -->
+<div id="reportsModal">
+  <div id="reportsBox">
+    <div id="reportsHeader">
+      <span class="rm-title">&#128202; Report Generator</span>
+      <button id="reportsClose" onclick="closeReportsModal()">&#10005;</button>
+    </div>
+    <div id="reportsBody">
+      <div class="rm-row">
+        <div>
+          <label class="rm-label">Report Type</label>
+          <select class="rm-select" id="rmType" onchange="rmTypeChanged()">
+            <option value="summary">Summary &mdash; All Activity</option>
+            <option value="suspicious">Suspicious Events Only</option>
+            <option value="user">User Report</option>
+            <option value="ou">OU Report</option>
+            <option value="ip">IP Address Report</option>
+          </select>
+        </div>
+        <div>
+          <label class="rm-label">Date Range</label>
+          <select class="rm-select" id="rmDays">
+            <option value="1">Last 24 hours</option>
+            <option value="7" selected>Last 7 days</option>
+            <option value="14">Last 14 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+      </div>
+      <div id="rmFilterWrap">
+        <label class="rm-label" id="rmFilterLabel">Filter Value</label>
+        <input class="rm-input" id="rmFilter" type="text" placeholder="" list="rmFilterList" autocomplete="off">
+        <datalist id="rmFilterList"></datalist>
+      </div>
+      <div class="rm-btn-row">
+        <button class="rm-btn secondary" id="rmPreviewBtn" onclick="rmPreview()">&#128269; Preview</button>
+      </div>
+      <div id="rmPreviewArea" class="rm-preview">
+        <div class="rm-stat-row" id="rmStatRow"></div>
+        <div id="rmPreviewText"></div>
+      </div>
+      <div id="rmEmailWrap">
+        <label class="rm-label">Email Recipient <span style="font-weight:400;opacity:.6;">(leave blank to send to yourself)</span></label>
+        <input class="rm-input" id="rmEmail" type="text" placeholder="optional@domain.com">
+      </div>
+      <div class="rm-btn-row" style="margin-top:12px;">
+        <button class="rm-btn secondary" id="rmCsvBtn" onclick="rmDownloadCSV()">&#8595; Download CSV</button>
+        <button class="rm-btn green"     id="rmEmailBtn" onclick="rmSendEmail()">&#9993; Send Email</button>
+      </div>
+      <div id="rmStatus"></div>
+    </div>
   </div>
 </div>
 
