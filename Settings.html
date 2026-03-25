@@ -641,7 +641,7 @@
       google.script.run
         .withSuccessHandler(function(raw) {
           var el = document.getElementById('mapAllowedUsers');
-          if (el) el.value = (raw || '').replace(/,/g, '\n');
+          if (el) el.value = (raw || '').split(/[,\n]/).map(function(e){return e.trim();}).filter(Boolean).join('\n');
         })
         .withFailureHandler(function() {})
         .getMapAllowedUsers();
