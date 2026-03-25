@@ -879,9 +879,15 @@ function applyUpdate() {
   google.script.run
     .withSuccessHandler(function(result) {
       if (result && result.ok) {
-        status.textContent = 'Update applied! Reloading...';
+        status.textContent = 'Update applied! Please close and reopen the map.';
         status.className = 'ok';
-        setTimeout(function() { window.location.reload(); }, 2000);
+        btn.textContent = '✓ Done';
+        // Show a close button since reload doesn't work in GAS iframes
+        var closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close Map';
+        closeBtn.style.cssText = 'display:block;width:100%;margin-top:8px;padding:8px;background:#1a2340;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:Rajdhani,sans-serif;font-size:13px;cursor:pointer;';
+        closeBtn.onclick = function() { google.script.host.close(); };
+        document.getElementById('umStatus').after(closeBtn);
       } else {
         status.textContent = (result && result.message) || 'Update failed.';
         status.className = 'bad';
