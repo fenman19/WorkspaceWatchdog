@@ -1,21 +1,8 @@
 {
-  "version": "3.4.0",
-  "released": "2026-03-24",
+  "version": "3.4.1",
+  "released": "2026-03-25",
   "changelog": [
-    "Added Report Generator — Summary, Suspicious, User, OU, and IP reports",
-    "Reports accessible from map toolbar via chart button",
-    "Reports support Preview, Download CSV, and Send Email delivery",
-    "OU reports now correctly filter suspicious events to that OU only",
-    "Outside US count in reports includes suspicious sheet events",
-    "Added Active Alerts panel in globe view when Susp Overlay is active",
-    "Alert cards color coded — red Outside US, orange Impossible Travel, yellow Login Burst",
-    "Alert cards sorted newest first",
-    "Legend reordered — Outside US, Impossible Travel, Login Burst",
-    "Traffic light cluster colors — green clean, amber mixed, red suspicious",
-    "Globe markers updated to match color scheme throughout",
-    "Scorecard labels renamed — Rows to Events, Emails to Accounts",
-    "Settings email recipients field now full width below label",
-    "Diagnostics sheet auto-trims to 7 days nightly",
-    "SUPPRESSED alert log entries removed from diagnostics"
+    "Fixed Settings panel displaying allowed map users as concatenated text after purge",
+    "Allowed users textarea now correctly splits on both comma and newline separators"
   ]
 }
