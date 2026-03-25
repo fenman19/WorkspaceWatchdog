@@ -4995,3 +4995,284 @@ function showUpdatesPanel() {
     .setHeight(580);
   SpreadsheetApp.getUi().showModalDialog(html, 'Workspace Watchdog — Updates');
 }
+// ============================================================
+// REPORTS — On-demand security reports from the Live Map
+// ============================================================
+
+/**
+ * Returns list of unique users, OUs, and IPs from Main sheet for autocomplete.
+ */
+function getReportFilterOptions() {
+  _applyRuntimeConfig_();
+  const ss     = SpreadsheetApp.getActive();
+  const shMain = ss.getSheetByName(CONFIG.MAIN);
+  if (!shMain || shMain.getLastRow() <= 1) return { users: [], ous: [], ips: [] };
+
+  const data = shMain.getRange(2, 1, Math.min(shMain.getLastRow()-1, 5000), 13).getValues();
+  const users = new Set(), ous = new Set(), ips = new Set();
+
+  for (const r of data) {
+    if (r[1]) users.add(String(r[1]).toLowerCase().trim());
+    if (r[3]) ips.add(String(r[3]).trim());
+    if (r[12]) ous.add(String(r[12]).trim());
+  }
+
+  return {
+    users: Array.from(users).sort().slice(0, 200),
+    ous:   Array.from(ous).filter(Boolean).sort().slice(0, 100),
+    ips:   Array.from(ips).sort().slice(0, 200)
+  };
+}
+
+/**
+ * Master report function — fetches data filtered by type, date range, and value.
+ * reportType: 'user' | 'ou' | 'ip' | 'suspicious' | 'summary'
+ */
+function getReportData(reportType, filterValue, daysBack) {
+  _applyRuntimeConfig_();
+  const ss      = SpreadsheetApp.getActive();
+  const shMain  = ss.getSheetByName(CONFIG.MAIN);
+  const shSusp  = ss.getSheetByName(CONFIG.SUSPICIOUS);
+  const days    = Number(daysBack) || 7;
+  const cutoff  = new Date(Date.now() - days * 24 * 3600000);
+  const filter  = String(filterValue || '').trim().toLowerCase();
+
+  // ── Read Main sheet ──────────────────────────────────────────
+  const mainRows = [];
+  if (shMain && shMain.getLastRow() > 1) {
+    const data = shMain.getRange(2, 1, shMain.getLastRow() - 1, 17).getValues();
+    for (const r of data) {
+      const ts      = r[0];
+      const email   = String(r[1]  || '').toLowerCase();
+      const evName  = String(r[2]  || '');
+      const ip      = String(r[3]  || '');
+      const city    = String(r[4]  || '');
+      const region  = String(r[5]  || '');
+      const country = String(r[6]  || '');
+      const isp     = String(r[7]  || '');
+      const ouPath  = String(r[12] || '');
+      const outside = r[14] === true || r[14] === 'TRUE' || r[14] === 1;
+      const topOU   = String(r[16] || '');
+
+      const rowDate = ts instanceof Date ? ts : new Date(ts);
+      if (isNaN(rowDate.getTime()) || rowDate < cutoff) continue;
+
+      if (filter) {
+        if (reportType === 'user' && email !== filter) continue;
+        if (reportType === 'ou'   && !ouPath.toLowerCase().startsWith(filter)) continue;
+        if (reportType === 'ip'   && ip !== filter) continue;
+      }
+
+      mainRows.push({ ts: _fmtCT_no_tz_(rowDate), email, evName, ip, city, region, country, isp, ouPath, topOU, outside });
+    }
+  }
+
+  // ── Read Suspicious sheet ────────────────────────────────────
+  const allowedEmails = reportType === 'ou' ? new Set(mainRows.map(r => r.email)) : null;
+  const suspRows = [];
+  if (shSusp && shSusp.getLastRow() > 1) {
+    const data = shSusp.getRange(2, 1, shSusp.getLastRow() - 1, 12).getValues();
+    for (const r of data) {
+      const ts      = r[0];
+      const email   = String(r[1] || '').toLowerCase();
+      const reason  = String(r[2] || '');
+      const details = String(r[3] || '');
+      const fromCity= String(r[4] || '');
+      const toCity  = String(r[8] || '');
+
+      const rowDate = ts instanceof Date ? ts : new Date(ts);
+      if (isNaN(rowDate.getTime()) || rowDate < cutoff) continue;
+
+      if (filter) {
+        if (reportType === 'user' && email !== filter) continue;
+        if (reportType === 'ip'   && !details.includes(filter)) continue;
+      }
+      if (allowedEmails && !allowedEmails.has(email)) continue;
+
+      suspRows.push({ ts: _fmtCT_no_tz_(rowDate), email, reason, details, fromCity, toCity });
+    }
+  }
+
+  // ── Build summary stats ──────────────────────────────────────
+  const totalEvents  = mainRows.length;
+  const successCount = mainRows.filter(r => r.evName === 'login_success').length;
+  const failCount    = mainRows.filter(r => r.evName === 'login_failure').length;
+  const outsideFromMain = mainRows.filter(r => r.outside).length;
+  const outsideFromSusp = suspRows.filter(r => r.reason === 'Outside US').length;
+  const outsideCount = Math.max(outsideFromMain, outsideFromSusp);
+  const uniqueUsers  = new Set(mainRows.map(r => r.email)).size;
+  const uniqueIPs    = new Set(mainRows.map(r => r.ip)).size;
+  const failRate     = (successCount + failCount) > 0
+    ? ((failCount / (successCount + failCount)) * 100).toFixed(1) : '0.0';
+
+  const failMap = {};
+  mainRows.filter(r => r.evName === 'login_failure').forEach(r => {
+    failMap[r.email] = (failMap[r.email] || 0) + 1;
+  });
+  const topFailed = Object.entries(failMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
+
+  const ipMap = {};
+  mainRows.forEach(r => { if (r.ip) ipMap[r.ip] = (ipMap[r.ip] || 0) + 1; });
+  const topIPs = Object.entries(ipMap).sort((a,b) => b[1]-a[1]).slice(0, 10);
+
+  const ouMap = {};
+  mainRows.forEach(r => { if (r.topOU) ouMap[r.topOU] = (ouMap[r.topOU] || 0) + 1; });
+  const ouBreakdown = Object.entries(ouMap).sort((a,b) => b[1]-a[1]).slice(0, 15);
+
+  return {
+    reportType, filterValue, daysBack: days,
+    generatedAt: _fmtCT_no_tz_(new Date()),
+    totalEvents, successCount, failCount, failRate,
+    outsideCount, uniqueUsers, uniqueIPs,
+    topFailed, topIPs, ouBreakdown,
+    rows:     mainRows,
+    suspRows: suspRows
+  };
+}
+
+/**
+ * Returns report data as CSV string for client-side download.
+ */
+function getReportCSV(reportType, filterValue, daysBack) {
+  try {
+    const data = getReportData(reportType, filterValue, daysBack);
+    const lines = [];
+    if (reportType === 'suspicious') {
+      lines.push(['Timestamp','Email','Reason','Details','From City','To City'].join(','));
+      data.suspRows.forEach(function(r) {
+        lines.push([r.ts, r.email, r.reason, r.details, r.fromCity, r.toCity]
+          .map(function(v) { return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(','));
+      });
+    } else {
+      lines.push(['Timestamp','Email','Event','IP','ISP','City','Region','Country','OU','Outside US'].join(','));
+      data.rows.forEach(function(r) {
+        lines.push([r.ts, r.email, r.evName, r.ip, r.isp, r.city, r.region, r.country, r.ouPath, r.outside ? 'Yes' : '']
+          .map(function(v) { return '"' + String(v||'').replace(/"/g,'""') + '"'; }).join(','));
+      });
+    }
+    return { ok: true, csv: lines.join('\n'), filename: 'ww_report_' + reportType + '_' + new Date().toISOString().slice(0,10) + '.csv' };
+  } catch(e) {
+    return { ok: false, message: e.message || String(e) };
+  }
+}
+
+/**
+ * Sends a formatted HTML report email.
+ */
+function sendReportEmail(reportType, filterValue, daysBack, recipientEmail) {
+  try {
+    const data  = getReportData(reportType, filterValue, daysBack);
+    const owner = Session.getEffectiveUser().getEmail();
+    const to    = recipientEmail && recipientEmail.trim() ? recipientEmail.trim() : owner;
+    const html  = _buildReportHtml_(data);
+    const labels = { user: 'User', ou: 'OU', ip: 'IP', suspicious: 'Suspicious', summary: 'Summary' };
+    const label  = labels[reportType] || 'Security';
+    const filter = filterValue ? ' — ' + filterValue : '';
+    const subject = 'Workspace Watchdog ' + label + ' Report' + filter +
+                    ' (' + daysBack + 'd) — ' + data.generatedAt.slice(0,10);
+    GmailApp.sendEmail(to, subject, '', { htmlBody: html, name: 'Workspace Watchdog' });
+    return { ok: true, message: 'Report sent to ' + to };
+  } catch(e) {
+    return { ok: false, message: e.message || String(e) };
+  }
+}
+
+/** Builds the HTML email for a report */
+function _buildReportHtml_(d) {
+  const typeLabels = { user: 'User Report', ou: 'OU Report', ip: 'IP Report',
+                       suspicious: 'Suspicious Events', summary: 'Summary Report' };
+  const title  = typeLabels[d.reportType] || 'Security Report';
+  const filter = d.filterValue ? '<br><span style="font-size:13px;color:#9aa0a6;">' + d.filterValue + '</span>' : '';
+
+  function statBox(label, val, color) {
+    return '<td style="text-align:center;padding:12px 16px;">' +
+      '<div style="font-size:26px;font-weight:700;color:' + color + ';line-height:1;">' + val + '</div>' +
+      '<div style="font-size:11px;color:#8ab4f8;text-transform:uppercase;letter-spacing:.06em;margin-top:4px;">' + label + '</div>' +
+      '</td>';
+  }
+
+  function sectionHdr(title) {
+    return '<tr><td colspan="2" style="padding:16px 24px 6px;">' +
+      '<div style="font-size:11px;font-weight:700;color:#8ab4f8;text-transform:uppercase;' +
+      'letter-spacing:.08em;border-bottom:1px solid #2a3f5f;padding-bottom:6px;">' + title + '</div></td></tr>';
+  }
+
+  var topFailedRows = d.topFailed.map(function(e) {
+    var clr = e[1] >= 10 ? '#ef5350' : e[1] >= 5 ? '#ff9800' : '#9aa0a6';
+    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
+      '<td style="padding:6px 12px;font-size:12px;color:#e8eaed;">' + e[0] + '</td>' +
+      '<td style="padding:6px 12px;font-size:12px;font-weight:700;color:' + clr + ';text-align:right;">' + e[1] + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var suspHtml = d.suspRows.slice(0, 20).map(function(r) {
+    var clr = r.reason === 'Impossible Travel' ? '#ff6d00' :
+              r.reason === 'Login Burst' ? '#ffaa00' : '#f44336';
+    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
+      '<td style="padding:6px 12px;font-size:11px;color:#9aa0a6;white-space:nowrap;">' + r.ts.slice(0,16) + '</td>' +
+      '<td style="padding:6px 12px;font-size:12px;color:#e8eaed;">' + r.email + '</td>' +
+      '<td style="padding:6px 12px;font-size:12px;font-weight:700;color:' + clr + ';">' + r.reason + '</td>' +
+      '<td style="padding:6px 12px;font-size:11px;color:#9aa0a6;">' + r.details.slice(0,60) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var recentRows = d.rows.slice(0, 50).map(function(r) {
+    var clr = r.evName === 'login_failure' ? '#ef5350' : r.outside ? '#f44336' : '#81c995';
+    return '<tr style="border-bottom:1px solid #1e3a5f;">' +
+      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;white-space:nowrap;">' + r.ts.slice(0,16) + '</td>' +
+      '<td style="padding:5px 10px;font-size:11px;color:#e8eaed;">' + r.email + '</td>' +
+      '<td style="padding:5px 10px;font-size:11px;font-weight:700;color:' + clr + ';">' + r.evName.replace('login_','') + '</td>' +
+      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;">' + [r.city,r.country].filter(Boolean).join(', ') + '</td>' +
+      '<td style="padding:5px 10px;font-size:11px;color:#9aa0a6;">' + r.ip + '</td>' +
+      '</tr>';
+  }).join('');
+
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;background:#0f1923;font-family:Arial,sans-serif;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1923;padding:24px 0;">' +
+    '<tr><td align="center">' +
+    '<table width="680" cellpadding="0" cellspacing="0" style="background:#152232;border-radius:8px;overflow:hidden;max-width:680px;">' +
+    '<tr><td style="background:linear-gradient(135deg,#0a1628,#0d1f3c,#0a1628);padding:24px;text-align:center;">' +
+    '<div style="font-size:22px;font-weight:700;color:#00c8ff;letter-spacing:2px;text-transform:uppercase;">' +
+    'Workspace Watchdog</div>' +
+    '<div style="font-size:18px;font-weight:700;color:#e8eaed;margin-top:6px;">' + title + filter + '</div>' +
+    '<div style="font-size:12px;color:#9aa0a6;margin-top:4px;">Last ' + d.daysBack + ' days &mdash; Generated ' + d.generatedAt + '</div>' +
+    '</td></tr>' +
+    '<tr><td style="padding:20px 24px 8px;">' +
+    '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1e3a5f;border-radius:6px;"><tr>' +
+    statBox('Total Events',  d.totalEvents,  '#8ab4f8') +
+    statBox('Successful',    d.successCount, '#81c995') +
+    statBox('Failed',        d.failCount,    d.failCount > 0 ? '#ef5350' : '#81c995') +
+    statBox('Fail Rate',     d.failRate + '%', parseFloat(d.failRate) > 10 ? '#ef5350' : '#81c995') +
+    statBox('Outside US',   d.outsideCount,  d.outsideCount > 0 ? '#f44336' : '#81c995') +
+    statBox('Unique Users', d.uniqueUsers,   '#8ab4f8') +
+    '</tr></table></td></tr>' +
+    (d.suspRows.length ? sectionHdr('Suspicious Events (' + d.suspRows.length + ')') +
+      '<tr><td colspan="2" style="padding:0 24px 12px;">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">' +
+      '<tr style="background:#1e3a5f;"><th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">TIME</th>' +
+      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>' +
+      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">REASON</th>' +
+      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">DETAILS</th></tr>' +
+      suspHtml + '</table></td></tr>' : '') +
+    (d.topFailed.length ? sectionHdr('Top Failed Login Accounts') +
+      '<tr><td colspan="2" style="padding:0 24px 12px;">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">' +
+      '<tr style="background:#1e3a5f;"><th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>' +
+      '<th style="padding:6px 12px;font-size:10px;color:#8ab4f8;text-align:right;">FAILURES</th></tr>' +
+      topFailedRows + '</table></td></tr>' : '') +
+    (d.rows.length && d.reportType !== 'summary' ? sectionHdr('Recent Activity (last 50 events)') +
+      '<tr><td colspan="2" style="padding:0 24px 16px;">' +
+      '<table width="100%" cellpadding="0" cellspacing="0" style="background:#1a2e45;border-radius:6px;">' +
+      '<tr style="background:#1e3a5f;">' +
+      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">TIME</th>' +
+      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">EMAIL</th>' +
+      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">EVENT</th>' +
+      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">LOCATION</th>' +
+      '<th style="padding:5px 10px;font-size:10px;color:#8ab4f8;text-align:left;">IP</th></tr>' +
+      recentRows + '</table></td></tr>' : '') +
+    '<tr><td style="padding:16px 24px;text-align:center;border-top:1px solid #1e3a5f;">' +
+    '<div style="font-size:11px;color:#3a5070;">Generated by Workspace Watchdog</div>' +
+    '</td></tr>' +
+    '</table></td></tr></table></body></html>';
+}
