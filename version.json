@@ -1,11 +1,8 @@
 {
-  "version": "3.4.2",
+  "version": "3.4.3",
   "released": "2026-03-25",
   "changelog": [
-    "Restored report functions missing from Code.gs — getReportData, getReportCSV, sendReportEmail, getReportFilterOptions",
-    "Report Generator autocomplete lists for users, OUs, and IPs now working again",
-    "Update badge moved to far left of title bar",
-    "Update modal now shows Close Map button instead of failed reload after applying update",
-    "Removed map launch prompt on sheet open"
+    "Fixed Report Generator filter dropdown not working in full screen map view",
+    "Replaced native datalist with custom dropdown — works consistently in both modal and full screen"
   ]
 }
