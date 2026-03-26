@@ -463,6 +463,10 @@
     .rm-stat-val { font-size: 20px; font-weight: 700; font-family: 'Rajdhani', sans-serif; }
     .rm-stat-lbl { font-size: 9px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; }
     #rmFilterWrap { display: none; margin-bottom: 14px; }
+    .rm-drop-item { padding: 8px 12px; font-size: 12px; font-family: 'Share Tech Mono', monospace;
+      color: var(--text); cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .rm-drop-item:last-child { border-bottom: none; }
+    .rm-drop-item:hover, .rm-drop-item.active { background: rgba(0,200,255,0.1); color: var(--accent); }
     #rmEmailWrap  { display: none; margin-bottom: 14px; }
     .rm-preview { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); line-height: 1.6; display: none; }
 
@@ -953,11 +957,36 @@ function rmTypeChanged() {
     var items = type === 'user' ? opts.users : type === 'ou' ? opts.ous : opts.ips;
     label.textContent  = type === 'user' ? 'User Email' : type === 'ou' ? 'OU Path' : 'IP Address';
     input.placeholder  = type === 'user' ? 'user@domain.com' : type === 'ou' ? '/Staff' : '192.168.1.1';
-    datalist.innerHTML = items.map(function(v) { return '<option value="' + esc(v) + '">'; }).join('');
     input.value = '';
+    // Store items on the input for filtering
+    input._rmItems = items;
+    document.getElementById('rmDropdown').style.display = 'none';
   } else {
     wrap.style.display = 'none';
   }
+}
+
+function rmFilterInput() {
+  var input    = document.getElementById('rmFilter');
+  var dropdown = document.getElementById('rmDropdown');
+  var items    = input._rmItems || [];
+  var q        = input.value.toLowerCase();
+  var filtered = q ? items.filter(function(v) { return v.toLowerCase().includes(q); }) : items;
+  if (!filtered.length) { dropdown.style.display = 'none'; return; }
+  dropdown.innerHTML = filtered.slice(0, 50).map(function(v) {
+    return '<div class="rm-drop-item" onmousedown="rmSelectItem(' + JSON.stringify(v) + ')">' + esc(v) + '</div>';
+  }).join('');
+  dropdown.style.display = 'block';
+}
+
+function rmSelectItem(val) {
+  document.getElementById('rmFilter').value = val;
+  document.getElementById('rmDropdown').style.display = 'none';
+}
+
+function rmFilterHide() {
+  var dropdown = document.getElementById('rmDropdown');
+  if (dropdown) dropdown.style.display = 'none';
 }
 
 function rmSetStatus(msg, ok) {
@@ -3029,10 +3058,14 @@ function changeGlobeTexture(tex) {
           </select>
         </div>
       </div>
-      <div id="rmFilterWrap">
+      <div id="rmFilterWrap" style="position:relative;">
         <label class="rm-label" id="rmFilterLabel">Filter Value</label>
-        <input class="rm-input" id="rmFilter" type="text" placeholder="" list="rmFilterList" autocomplete="off">
-        <datalist id="rmFilterList"></datalist>
+        <input class="rm-input" id="rmFilter" type="text" placeholder="" autocomplete="off"
+          oninput="rmFilterInput()" onfocus="rmFilterInput()" onblur="setTimeout(rmFilterHide,200)">
+        <div id="rmDropdown" style="display:none;position:absolute;left:0;right:0;top:100%;
+          background:#0d1a2e;border:1px solid var(--accent);border-radius:0 0 8px 8px;
+          max-height:200px;overflow-y:auto;z-index:99999;box-shadow:0 4px 16px rgba(0,0,0,0.5);">
+        </div>
       </div>
       <div class="rm-btn-row">
         <button class="rm-btn secondary" id="rmPreviewBtn" onclick="rmPreview()">&#128269; Preview</button>
