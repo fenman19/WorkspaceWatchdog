@@ -1,8 +1,9 @@
 {
-  "version": "3.4.5",
+  "version": "3.4.6",
   "released": "2026-03-25",
   "changelog": [
-    "Report Generator modal wider and taller — no more scrollbar",
-    "Filter dropdown taller to show more options before scrolling"
+    "Report Generator dropdown now uses fixed positioning — no longer clipped by modal",
+    "Report Generator modal positioned near top of screen for more dropdown room",
+    "Dropdown shows up to 100 items instead of 50"
   ]
 }
