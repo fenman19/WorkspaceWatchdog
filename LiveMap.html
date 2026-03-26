@@ -2927,7 +2927,19 @@ function feedGlobeData() {
     .arcEndLat('endLat')
     .arcEndLng('endLng')
     .arcColor('color')
-    .arcAltitude(0.2)
+    .arcAltitude(function(d) {
+        // Calculate great-circle angular distance to set arc height
+        // Short arcs stay low, intercontinental arcs curve well above globe
+        var lat1 = d.startLat * Math.PI / 180;
+        var lat2 = d.endLat   * Math.PI / 180;
+        var dLng = (d.endLng - d.startLng) * Math.PI / 180;
+        var dLat = (d.endLat - d.startLat) * Math.PI / 180;
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)*Math.sin(dLng/2);
+        var angDist = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); // radians
+        // Scale: 0 rad = 0.15, PI rad (halfway around) = 0.8
+        return 0.15 + (angDist / Math.PI) * 0.65;
+      })
     .arcStroke(0.5)
     .arcCurveResolution(128)
     .arcDashLength(0.6)
