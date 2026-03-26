@@ -1,9 +1,8 @@
 {
-  "version": "3.4.4",
+  "version": "3.4.5",
   "released": "2026-03-25",
   "changelog": [
-    "Fixed Report Generator dropdown crashing silently in full screen mode due to stale datalist reference",
-    "Filter options now reload fresh every time the report modal opens",
-    "Dropdown now populates immediately when report type is changed"
+    "Report Generator modal wider and taller — no more scrollbar",
+    "Filter dropdown taller to show more options before scrolling"
   ]
 }
