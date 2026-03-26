@@ -1,8 +1,9 @@
 {
-  "version": "3.4.3",
+  "version": "3.4.4",
   "released": "2026-03-25",
   "changelog": [
-    "Fixed Report Generator filter dropdown not working in full screen map view",
-    "Replaced native datalist with custom dropdown — works consistently in both modal and full screen"
+    "Fixed Report Generator dropdown crashing silently in full screen mode due to stale datalist reference",
+    "Filter options now reload fresh every time the report modal opens",
+    "Dropdown now populates immediately when report type is changed"
   ]
 }
