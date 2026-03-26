@@ -921,17 +921,17 @@ function openReportsModal() {
   document.getElementById('rmPreviewArea').style.display = 'none';
   document.getElementById('rmEmailWrap').style.display = 'none';
   rmSetStatus('');
-  if (!_rmFilterOptions) {
-    google.script.run
-      .withSuccessHandler(function(opts) {
-        _rmFilterOptions = opts;
-        rmTypeChanged();
-      })
-      .withFailureHandler(function() { _rmFilterOptions = { users: [], ous: [], ips: [] }; })
-      .getReportFilterOptions();
-  } else {
-    rmTypeChanged();
-  }
+  // Always reload options fresh — ensures full screen mode gets data
+  google.script.run
+    .withSuccessHandler(function(opts) {
+      _rmFilterOptions = opts || { users: [], ous: [], ips: [] };
+      rmTypeChanged();
+    })
+    .withFailureHandler(function(err) {
+      _rmFilterOptions = { users: [], ous: [], ips: [] };
+      rmTypeChanged();
+    })
+    .getReportFilterOptions();
 }
 
 function closeReportsModal() {
@@ -943,24 +943,27 @@ document.addEventListener('click', function(e) {
 });
 
 function rmTypeChanged() {
-  var type     = document.getElementById('rmType').value;
-  var wrap     = document.getElementById('rmFilterWrap');
-  var label    = document.getElementById('rmFilterLabel');
-  var input    = document.getElementById('rmFilter');
-  var datalist = document.getElementById('rmFilterList');
+  var type  = document.getElementById('rmType').value;
+  var wrap  = document.getElementById('rmFilterWrap');
+  var label = document.getElementById('rmFilterLabel');
+  var input = document.getElementById('rmFilter');
   document.getElementById('rmPreviewArea').style.display = 'none';
   document.getElementById('rmEmailWrap').style.display = 'none';
   rmSetStatus('');
   if (type === 'user' || type === 'ou' || type === 'ip') {
     wrap.style.display = 'block';
-    var opts  = _rmFilterOptions || { users: [], ous: [], ips: [] };
-    var items = type === 'user' ? opts.users : type === 'ou' ? opts.ous : opts.ips;
-    label.textContent  = type === 'user' ? 'User Email' : type === 'ou' ? 'OU Path' : 'IP Address';
-    input.placeholder  = type === 'user' ? 'user@domain.com' : type === 'ou' ? '/Staff' : '192.168.1.1';
+    label.textContent = type === 'user' ? 'User Email' : type === 'ou' ? 'OU Path' : 'IP Address';
+    input.placeholder = type === 'user' ? 'user@domain.com' : type === 'ou' ? '/Staff' : '192.168.1.1';
     input.value = '';
-    // Store items on the input for filtering
-    input._rmItems = items;
-    document.getElementById('rmDropdown').style.display = 'none';
+    var dropdown = document.getElementById('rmDropdown');
+    if (dropdown) dropdown.style.display = 'none';
+    // If options already loaded, populate immediately
+    if (_rmFilterOptions) {
+      var items = type === 'user' ? _rmFilterOptions.users : type === 'ou' ? _rmFilterOptions.ous : _rmFilterOptions.ips;
+      input._rmItems = items || [];
+    } else {
+      input._rmItems = [];
+    }
   } else {
     wrap.style.display = 'none';
   }
