@@ -5003,25 +5003,48 @@ function showUpdatesPanel() {
  * Returns list of unique users, OUs, and IPs from Main sheet for autocomplete.
  */
 function getReportFilterOptions() {
+  // Only returns OUs — users and IPs are searched live via searchReportFilter()
   _applyRuntimeConfig_();
   const ss     = SpreadsheetApp.getActive();
   const shMain = ss.getSheetByName(CONFIG.MAIN);
   if (!shMain || shMain.getLastRow() <= 1) return { users: [], ous: [], ips: [] };
 
-  const data = shMain.getRange(2, 1, Math.min(shMain.getLastRow()-1, 5000), 13).getValues();
-  const users = new Set(), ous = new Set(), ips = new Set();
-
+  const data = shMain.getRange(2, 1, shMain.getLastRow()-1, 13).getValues();
+  const ous  = new Set();
   for (const r of data) {
-    if (r[1]) users.add(String(r[1]).toLowerCase().trim());
-    if (r[3]) ips.add(String(r[3]).trim());
     if (r[12]) ous.add(String(r[12]).trim());
   }
 
   return {
-    users: Array.from(users).sort().slice(0, 200),
+    users: [],  // searched live
     ous:   Array.from(ous).filter(Boolean).sort().slice(0, 100),
-    ips:   Array.from(ips).sort().slice(0, 200)
+    ips:   []   // searched live
   };
+}
+
+/**
+ * Live search for report filter autocomplete.
+ * Returns up to 20 matching values for the given type and query (min 2 chars).
+ */
+function searchReportFilter(type, query) {
+  _applyRuntimeConfig_();
+  if (!query || query.length < 2) return [];
+  const ss     = SpreadsheetApp.getActive();
+  const shMain = ss.getSheetByName(CONFIG.MAIN);
+  if (!shMain || shMain.getLastRow() <= 1) return [];
+
+  const q    = query.toLowerCase();
+  const col  = type === 'user' ? 1 : type === 'ip' ? 3 : 12; // 0-based col index
+  const data = shMain.getRange(2, 1, shMain.getLastRow()-1, 13).getValues();
+  const results = new Set();
+
+  for (const r of data) {
+    const val = String(r[col] || '').toLowerCase().trim();
+    if (val && val.includes(q)) results.add(val);
+    if (results.size >= 50) break;
+  }
+
+  return Array.from(results).sort().slice(0, 20);
 }
 
 /**
