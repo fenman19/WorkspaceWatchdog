@@ -1,10 +1,7 @@
 {
-  "version": "3.4.7",
-  "released": "2026-03-25",
+  "version": "3.4.8",
+  "released": "2026-03-26",
   "changelog": [
-    "Report Generator user and IP filters now use live search — type 2+ characters to search",
-    "No more pre-loading all users — works for any size district",
-    "OU filter still shows full list on click since OU count is small",
-    "Search debounced 300ms for smooth typing experience"
+    "Fixed Impossible Travel Arc issue over large distances"
   ]
 }
