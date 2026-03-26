@@ -1,9 +1,10 @@
 {
-  "version": "3.4.6",
+  "version": "3.4.7",
   "released": "2026-03-25",
   "changelog": [
-    "Report Generator dropdown now uses fixed positioning — no longer clipped by modal",
-    "Report Generator modal positioned near top of screen for more dropdown room",
-    "Dropdown shows up to 100 items instead of 50"
+    "Report Generator user and IP filters now use live search — type 2+ characters to search",
+    "No more pre-loading all users — works for any size district",
+    "OU filter still shows full list on click since OU count is small",
+    "Search debounced 300ms for smooth typing experience"
   ]
 }
