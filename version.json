@@ -1,7 +1,7 @@
 {
-  "version": "3.4.10",
+  "version": "3.4.11",
   "releaseDate": "2026-03-30",
   "changelog": [
-    "Fix: Skip impossible travel detection when both login events share the same IP address, preventing false positives caused by GeoIP inconsistencies on IPv6 addresses."
+    "Fix: Made chart colors more bold and less muted."
   ]
 }
