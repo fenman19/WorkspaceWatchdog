@@ -1,7 +1,5 @@
 {
-  "version": "3.4.8",
-  "released": "2026-03-26",
-  "changelog": [
-    "Fixed Impossible Travel Arc issue over large distances"
-  ]
+  "version": "3.4.10",
+  "releaseDate": "2026-03-30",
+  "notes": "Fix: Skip impossible travel detection when both login events share the same IP address, preventing false positives caused by GeoIP inconsistencies on IPv6 addresses."
 }
