@@ -1833,10 +1833,10 @@ function renderCharts(rows) {
     data: {
       labels: d.labels,
       datasets: [
-        { label: 'Success',      data: d.success,      borderColor: '#4caf50', backgroundColor: 'rgba(76,175,80,0.08)',   borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
-        { label: 'Failed',       data: d.failure,      borderColor: '#f44336', backgroundColor: 'rgba(244,67,54,0.08)',  borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
-        { label: 'Verification', data: d.verification, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.06)',  borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false },
-        { label: 'Pwd Change',   data: d.password,     borderColor: '#9c27b0', backgroundColor: 'rgba(156,39,176,0.06)', borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false }
+        { label: 'Success',      data: d.success,      borderColor: '#00e676', backgroundColor: 'rgba(0,230,118,0.08)',   borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
+        { label: 'Failed',       data: d.failure,      borderColor: '#ff3b5c', backgroundColor: 'rgba(255,59,92,0.08)',   borderWidth: 2,   pointRadius: 3, tension: 0.3, fill: true },
+        { label: 'Verification', data: d.verification, borderColor: '#00bfff', backgroundColor: 'rgba(0,191,255,0.06)',   borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false },
+        { label: 'Pwd Change',   data: d.password,     borderColor: '#ff8c00', backgroundColor: 'rgba(255,140,0,0.06)',   borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: false }
       ]
     },
     options: base
@@ -1854,8 +1854,8 @@ function renderCharts(rows) {
     data: {
       labels: d.labels,
       datasets: [
-        { label: 'Fail Rate %',   data: d.rates, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true },
-        { label: '10% threshold', data: d.labels.map(function(){return 10;}), borderColor: 'rgba(244,67,54,0.5)', borderWidth: 1, borderDash: [6,3], pointRadius: 0, fill: false }
+        { label: 'Fail Rate %',   data: d.rates, borderColor: '#ff6000', backgroundColor: 'rgba(255,96,0,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true },
+        { label: '10% threshold', data: d.labels.map(function(){return 10;}), borderColor: 'rgba(255,215,0,0.6)', borderWidth: 1, borderDash: [6,3], pointRadius: 0, fill: false }
       ]
     },
     options: rateOpts
@@ -2202,10 +2202,10 @@ function expandChart(type) {
       data: {
         labels: d.labels,
         datasets: [
-          { label: 'Success',      data: d.success,      borderColor: '#81c995', backgroundColor: 'rgba(129,201,149,0.1)', tension: 0.3, fill: true,  pointRadius: 4 },
-          { label: 'Failed',       data: d.failure,      borderColor: '#ef5350', backgroundColor: 'rgba(239,83,80,0.1)',   tension: 0.3, fill: true,  pointRadius: 4 },
-          { label: 'Verification', data: d.verification, borderColor: '#ce93d8', backgroundColor: 'rgba(255,152,0,0.06)',  tension: 0.3, fill: false, pointRadius: 3 },
-          { label: 'Pwd Change',   data: d.password,     borderColor: '#ffaa00', backgroundColor: 'rgba(156,39,176,0.06)', tension: 0.3, fill: false, pointRadius: 3 }
+          { label: 'Success',      data: d.success,      borderColor: '#00e676', backgroundColor: 'rgba(0,230,118,0.1)',  tension: 0.3, fill: true,  pointRadius: 4 },
+          { label: 'Failed',       data: d.failure,      borderColor: '#ff3b5c', backgroundColor: 'rgba(255,59,92,0.1)',  tension: 0.3, fill: true,  pointRadius: 4 },
+          { label: 'Verification', data: d.verification, borderColor: '#00bfff', backgroundColor: 'rgba(0,191,255,0.06)', tension: 0.3, fill: false, pointRadius: 3 },
+          { label: 'Pwd Change',   data: d.password,     borderColor: '#ff8c00', backgroundColor: 'rgba(255,140,0,0.06)', tension: 0.3, fill: false, pointRadius: 3 }
         ]
       },
       options: baseOpts
@@ -2224,7 +2224,7 @@ function expandChart(type) {
           { label: 'Fail Rate %',    data: d.rates,
             borderColor: '#ffb300', backgroundColor: 'rgba(255,179,0,0.1)', tension: 0.3, pointRadius: 4 },
           { label: '10% threshold',  data: d.labels.map(function() { return 10; }),
-            borderColor: 'rgba(239,83,80,0.5)', borderDash: [6,4], pointRadius: 0, fill: false }
+            borderColor: 'rgba(255,215,0,0.6)', borderDash: [6,4], pointRadius: 0, fill: false }
         ]
       },
       options: rateOpts
