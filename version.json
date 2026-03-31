@@ -1,7 +1,7 @@
 {
-  "version": "3.4.11",
+  "version": "3.4.12",
   "releaseDate": "2026-03-30",
   "changelog": [
-    "Fix: Made chart colors more bold and less muted."
+    "Fix: Updated how Email button works it reports."
   ]
 }
