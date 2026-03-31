@@ -467,7 +467,7 @@
       color: var(--text); cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.04); }
     .rm-drop-item:last-child { border-bottom: none; }
     .rm-drop-item:hover, .rm-drop-item.active { background: rgba(0,200,255,0.1); color: var(--accent); }
-    #rmEmailWrap  { display: none; margin-bottom: 14px; }
+    #rmEmailWrap  { display: block; margin-bottom: 14px; }
     .rm-preview { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-top: 10px; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: var(--text2); line-height: 1.6; display: none; }
 
     /* ── Update modal ────────────────────────────────────────────────────── */
@@ -919,7 +919,6 @@ var _rmFilterOptions = null;
 function openReportsModal() {
   document.getElementById('reportsModal').classList.add('open');
   document.getElementById('rmPreviewArea').style.display = 'none';
-  document.getElementById('rmEmailWrap').style.display = 'none';
   rmSetStatus('');
   // Always reload options fresh — ensures full screen mode gets data
   google.script.run
@@ -948,7 +947,6 @@ function rmTypeChanged() {
   var label = document.getElementById('rmFilterLabel');
   var input = document.getElementById('rmFilter');
   document.getElementById('rmPreviewArea').style.display = 'none';
-  document.getElementById('rmEmailWrap').style.display = 'none';
   rmSetStatus('');
   if (type === 'user' || type === 'ou' || type === 'ip') {
     wrap.style.display = 'block';
@@ -1120,7 +1118,6 @@ function rmPreview() {
       }
       document.getElementById('rmPreviewText').textContent = lines.join('\n');
       document.getElementById('rmPreviewArea').style.display = 'block';
-      document.getElementById('rmEmailWrap').style.display = 'block';
       rmSetStatus('Preview loaded \u2014 ' + data.totalEvents + ' events found.', true);
     })
     .withFailureHandler(function(err) {
