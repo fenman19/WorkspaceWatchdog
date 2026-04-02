@@ -1,7 +1,8 @@
 {
-  "version": "3.4.12",
-  "releaseDate": "2026-03-30",
+  "version": "3.4.14",
+  "released": "2026-04-02",
   "changelog": [
-    "Fix: Updated how Email button works it reports."
+    "v3.4.14 — Fixed Campus IP Filter setting not persisting in Settings UI after save.",
+    "v3.4.13 — Added Campus IP Filter: logins from specified public IPs are silently dropped at ingestion and never written to Main. Configure via Settings > Campus IP Filter (comma-separated IPs)."
   ]
 }
