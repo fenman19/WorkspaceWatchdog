@@ -305,6 +305,31 @@
     </div>
   </div>
 
+  <!-- ── Campus IP Filter ───────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
+      Campus IP Filter <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body collapsed" style="max-height:400px;">
+      <div class="hint" style="margin-top:10px;margin-bottom:10px;">
+        Logins from these IPs are <strong>silently dropped at ingestion</strong> and never
+        written to Main. This keeps the sheet lean in high-login environments (e.g. a school
+        where thousands of students log in multiple times per day from the same public IP).
+        Unlike the Whitelist above, these rows are never stored at all.
+      </div>
+      <label for="campusIpFilter" style="font-size:13px;font-weight:600;display:block;margin-bottom:4px;">
+        Campus public IP address(es)
+      </label>
+      <input id="campusIpFilter" type="text" class="wide"
+             placeholder="203.0.113.1, 203.0.113.2  — comma-separated, leave blank to disable"
+             style="font-family:monospace;">
+      <div class="hint" style="margin-top:6px;">
+        Comma-separated list of public IP addresses. Supports multiple IPs for campuses with
+        more than one egress address. Changes take effect on the next sync.
+      </div>
+    </div>
+  </div>
+
   <!-- ── Full Screen Map Access ──────────────────────── -->
   <div class="card">
     <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
@@ -455,7 +480,8 @@
         digestEmailEnabled:          document.getElementById('digestEmailEnabled').checked,
         digestEmailTo:               document.getElementById('digestEmailTo').value.trim(),
         weeklyReportEnabled:         document.getElementById('weeklyReportEnabled').checked,
-        digestComparison:            document.getElementById('digestComparison').checked
+        digestComparison:            document.getElementById('digestComparison').checked,
+        campusIpFilter:              document.getElementById('campusIpFilter').value.trim()
       };
     }
 
@@ -492,6 +518,8 @@
       document.getElementById('chatAlertOnFailThreshold').checked = cfg.chatAlertOnFailThreshold !== false;
       document.getElementById('failThresholdCount').value         = cfg.failThresholdCount         || 10;
       document.getElementById('chatAlertScheduledOnly').checked   = cfg.chatAlertScheduledOnly !== false;
+
+      document.getElementById('campusIpFilter').value              = cfg.campusIpFilter             || '';
 
       // Webhook status indicator
       var urlField = document.getElementById('chatWebhookUrl');
