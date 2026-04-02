@@ -1,7 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.4.15
- * Extended Campus IP Filter to backfillDays (was only applied in scheduledSync)
+ * Google Workspace Login Monitor v3.4.16
+ * Fixed Campus IP Filter not applying during backfill (_applyRuntimeConfig_ was not called)
  * Fixed Report Generator Issues
  * Added Reports to LiveMap
  * Added updater to Toolbar in LiveMap
@@ -165,7 +165,7 @@ const DIAG_HEADERS = [
 
 // ===== Install, Wizard & Triggers ===========================================
 
-const WW_MONITOR_VERSION = '3.4.15';
+const WW_MONITOR_VERSION = '3.4.16';
 
 function _applyRuntimeConfig_() {
   const p = PropertiesService.getScriptProperties();
@@ -3706,6 +3706,7 @@ function _reportsListSafe_(userKey, appName, params) {
  * @param {number} chunkHours  Chunk size in hours (default 6)
  */
 function backfillDays(days, chunkHours) {
+  _applyRuntimeConfig_();
   const __ouMap = __getOUMap();
   days = Number(days) || 4;
   chunkHours = Number(chunkHours) || 6;
@@ -3724,6 +3725,11 @@ function backfillDays(days, chunkHours) {
 
   let cursor = new Date(startAll);
   let totalParsed = 0, totalAppended = 0, batches = 0;
+
+  // Build campus IP filter set once for the entire backfill
+  const campusIPs_bf = CONFIG.CAMPUS_IP_FILTER
+    ? new Set(String(CONFIG.CAMPUS_IP_FILTER).split(',').map(s => s.trim()).filter(Boolean))
+    : new Set();
 
   while (cursor < endAll) {
     const sliceStart = new Date(cursor);
@@ -3761,11 +3767,7 @@ function backfillDays(days, chunkHours) {
     }
 
     // Map to Main schema (including the precomputed tail)
-    // Apply campus IP filter — same as _syncCore, drop silently before writing
-    const campusIPs_bf = CONFIG.CAMPUS_IP_FILTER
-      ? new Set(String(CONFIG.CAMPUS_IP_FILTER).split(',').map(s => s.trim()).filter(Boolean))
-      : new Set();
-
+    // Apply campus IP filter — drop silently before writing
     if (rows.length) {
       const out = rows.filter(r => !(campusIPs_bf.size && r.ip && campusIPs_bf.has(r.ip))).map(r => {
         const g  = geoMap[r.ip] || {};
