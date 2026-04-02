@@ -1,6 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.4.10
+ * Google Workspace Login Monitor v3.4.14
+ * Fixed Campus IP Filter not persisting in Settings UI (missing from getWizardConfig)
  * Fixed Report Generator Issues
  * Added Reports to LiveMap
  * Added updater to Toolbar in LiveMap
@@ -107,7 +108,16 @@ let CONFIG = {
   // IP_REP_CACHE_DAYS: how long to cache reputation results per IP.
   IP_REP_ENABLED: false,
   IP_REP_MIN_SCORE: 25,
-  IP_REP_CACHE_DAYS: 3
+  IP_REP_CACHE_DAYS: 3,
+
+  // Campus IP Filter — comma-separated list of known campus public IP addresses.
+  // Login events from these IPs are silently dropped at ingestion and never written
+  // to Main. This keeps the sheet lean in high-login environments (e.g. schools
+  // where 2,000 students log in multiple times per day from the same public IP).
+  // Unlike the whitelist, which filters at display/alert time, this prevents the
+  // rows from ever being stored. Supports multiple IPs: '203.0.113.1,203.0.113.2'
+  // Leave empty ('') to disable (default).
+  CAMPUS_IP_FILTER: ''
 };
 
 // ===== Cache Indexes (large-domain performance) ==============================
@@ -155,7 +165,7 @@ const DIAG_HEADERS = [
 
 // ===== Install, Wizard & Triggers ===========================================
 
-const WW_MONITOR_VERSION = '3.4.10';
+const WW_MONITOR_VERSION = '3.4.14';
 
 function _applyRuntimeConfig_() {
   const p = PropertiesService.getScriptProperties();
@@ -213,6 +223,7 @@ function _applyRuntimeConfig_() {
   CONFIG.IP_REP_ENABLED                  = bool('IP_REP_ENABLED',                  CONFIG.IP_REP_ENABLED);
   CONFIG.IP_REP_MIN_SCORE                = num ('IP_REP_MIN_SCORE',                CONFIG.IP_REP_MIN_SCORE);
   CONFIG.IP_REP_CACHE_DAYS               = num ('IP_REP_CACHE_DAYS',               CONFIG.IP_REP_CACHE_DAYS);
+  CONFIG.CAMPUS_IP_FILTER                = str ('CAMPUS_IP_FILTER',                CONFIG.CAMPUS_IP_FILTER);
 }
 
 function onOpen() {
@@ -695,6 +706,7 @@ function getWizardConfig() {
     digestComparison:     CONFIG.DIGEST_COMPARISON,
     digestEmailTo:      CONFIG.DIGEST_EMAIL_TO,
     digestHour:       CONFIG.DIGEST_HOUR,
+    campusIpFilter:   CONFIG.CAMPUS_IP_FILTER || '',
 
     installed: p.getProperty('INSTALL_COMPLETE') === 'true',
     installVersion: p.getProperty('INSTALL_VERSION') || '',
@@ -748,7 +760,8 @@ function saveWizardConfig(form) {
     WEEKLY_REPORT_ENABLED:           cleanBool(form.weeklyReportEnabled),
     DIGEST_COMPARISON:               cleanBool(form.digestComparison),
     DIGEST_EMAIL_TO:                 String(form.digestEmailTo || '').trim(),
-    DIGEST_HOUR:                     cleanNum(form.digestHour, 7)
+    DIGEST_HOUR:                     cleanNum(form.digestHour, 7),
+    CAMPUS_IP_FILTER:                String(form.campusIpFilter || '').trim()
   }); // No deleteOthers — preserve existing Script Properties
   // Store sensitive keys separately — never logged to Setup sheet
   if (form.chatWebhookUrl && form.chatWebhookUrl.trim()) {
@@ -954,8 +967,14 @@ function _syncCore(triggerName) {
     }
 
     // Bind & append (with PRECOMPUTED fields)
-    // Apply OU filter — drop events from unmonitored OUs (empty = keep all)
+    // Build campus IP set once per sync (empty set = filter disabled)
+    const campusIPs = CONFIG.CAMPUS_IP_FILTER
+      ? new Set(String(CONFIG.CAMPUS_IP_FILTER).split(',').map(s => s.trim()).filter(Boolean))
+      : new Set();
+
+    // Apply campus IP filter and OU filter — drop silently, never written to Main
     const filteredRows = rows.filter(r => {
+      if (campusIPs.size && r.ip && campusIPs.has(r.ip)) return false;
       const ou = (__ouMap[r.email] && __ouMap[r.email].ou) || '';
       return _isMonitoredOU_(ou);
     });
