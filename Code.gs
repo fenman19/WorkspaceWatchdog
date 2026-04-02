@@ -1,7 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.4.14
- * Fixed Campus IP Filter not persisting in Settings UI (missing from getWizardConfig)
+ * Google Workspace Login Monitor v3.4.15
+ * Extended Campus IP Filter to backfillDays (was only applied in scheduledSync)
  * Fixed Report Generator Issues
  * Added Reports to LiveMap
  * Added updater to Toolbar in LiveMap
@@ -165,7 +165,7 @@ const DIAG_HEADERS = [
 
 // ===== Install, Wizard & Triggers ===========================================
 
-const WW_MONITOR_VERSION = '3.4.14';
+const WW_MONITOR_VERSION = '3.4.15';
 
 function _applyRuntimeConfig_() {
   const p = PropertiesService.getScriptProperties();
@@ -3761,8 +3761,13 @@ function backfillDays(days, chunkHours) {
     }
 
     // Map to Main schema (including the precomputed tail)
+    // Apply campus IP filter — same as _syncCore, drop silently before writing
+    const campusIPs_bf = CONFIG.CAMPUS_IP_FILTER
+      ? new Set(String(CONFIG.CAMPUS_IP_FILTER).split(',').map(s => s.trim()).filter(Boolean))
+      : new Set();
+
     if (rows.length) {
-      const out = rows.map(r => {
+      const out = rows.filter(r => !(campusIPs_bf.size && r.ip && campusIPs_bf.has(r.ip))).map(r => {
         const g  = geoMap[r.ip] || {};
         const ou = (__ouMap[r.email] && __ouMap[r.email].ou) || '';
 
