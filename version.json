@@ -1,7 +1,8 @@
 {
-  "version": "3.4.15",
+  "version": "3.4.16",
   "released": "2026-04-02",
   "changelog": [
+    "v3.4.16 — Fixed Campus IP Filter not applying during backfill (config was not being loaded before the backfill loop ran).",
     "v3.4.15 — Extended Campus IP Filter to backfill — campus IPs are now also excluded when running a backfill.",
     "v3.4.14 — Fixed Campus IP Filter setting not persisting in Settings UI after save.",
     "v3.4.13 — Added Campus IP Filter: logins from specified public IPs are silently dropped at ingestion and never written to Main. Configure via Settings > Campus IP Filter (comma-separated IPs)."
