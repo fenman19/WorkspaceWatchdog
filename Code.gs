@@ -1,6 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.4.16
+ * Google Workspace Login Monitor v3.4.17
+ * Fixed Geolocation API issues
  * Fixed Campus IP Filter not applying during backfill (_applyRuntimeConfig_ was not called)
  * Fixed Report Generator Issues
  * Added Reports to LiveMap
@@ -3243,8 +3244,8 @@ function _retryFailedGeoLookups_(shGeo) {
   }
   if (!retryIPs.length) return;
 
-  // Only retry up to 5 at a time to avoid blocking sync
-  const batch = retryIPs.slice(0, 5);
+  // Retry up to 20 at a time — failed entries accumulate faster than 5/sync can clear them
+  const batch = retryIPs.slice(0, 20);
   let resolved = 0, stillFailed = 0;
   batch.forEach(ip => {
     if (!ip) return;
@@ -3379,9 +3380,12 @@ function _batchWriteOURows_(shOU, entries) {
 // ===== GEO (cache) ===========================================================
 
 function _geolocate(ip) {
+  // Provider order: ipinfo.io first (HTTPS, 50k/month free, no key needed),
+  // then ipapi.co (rate-limited to 1k/day free — secondary),
+  // then freeipapi.com as final HTTPS fallback (60 req/min free).
   if (!ip) return null;
-  const r1 = _geo_ipapi(ip);       if (r1) return r1;
   const r2 = _geo_ipinfo(ip);      if (r2) return r2;
+  const r1 = _geo_ipapi(ip);       if (r1) return r1;
   const r3 = _geo_ipapicom(ip);    if (r3) return r3;
   return null;
 }
@@ -3411,13 +3415,17 @@ function _geo_ipinfo(ip) {
   } catch (_) { return null; }
 }
 function _geo_ipapicom(ip) {
+  // ip-api.com free tier only supports HTTP, which Apps Script blocks.
+  // Replaced with freeipapi.com — free, HTTPS, no key required, 60 req/min.
+  // Response fields: cityName, regionName, countryCode, countryName,
+  //   latitude, longitude, asnOrganization (ISP), ipType.
   try {
-    const u = 'http://ip-api.com/json/' + encodeURIComponent(ip) + '?fields=status,country,countryCode,region,regionName,city,lat,lon,isp,org,as';
+    const u = 'https://freeipapi.com/api/json/' + encodeURIComponent(ip);
     const res = UrlFetchApp.fetch(u, {muteHttpExceptions:true, timeout:10000});
     if (res.getResponseCode() !== 200) return null;
     const j = JSON.parse(res.getContentText()||'{}');
-    if (j.status !== 'success') return null;
-    return {city:j.city||'', region:j.region||j.regionName||'', country:j.countryCode||j.country||'', isp:_cleanIsp_(j.isp||j.org||j.as||''), lat:+j.lat, lon:+j.lon, source:'ip-api.com', lastSeenISO:new Date().toISOString()};
+    if (!_isCoord(j.latitude) || !_isCoord(j.longitude)) return null;
+    return {city:j.cityName||'', region:j.regionName||'', country:j.countryCode||j.countryName||'', isp:_cleanIsp_(j.asnOrganization||''), lat:+j.latitude, lon:+j.longitude, source:'freeipapi.com', lastSeenISO:new Date().toISOString()};
   } catch (_) { return null; }
 }
 function _loadGeoMap_(shGeo) {
@@ -3448,6 +3456,7 @@ function _loadGeoMap_(shGeo) {
 }
 function _isFreshGeo_(g) {
   if (!g || !g.lastSeenISO) return false;
+  if (g.source === 'failed') return false; // never treat a failed stub as fresh — always retry
   const ageH = (Date.now() - new Date(g.lastSeenISO).getTime())/3600000;
   return ageH < CONFIG.GEO_TTL_HOURS;
 }
@@ -3608,9 +3617,11 @@ function fillBlankGeoInMain() {
   data.forEach((r, i) => {
     const ip  = String(r[COL_IP] || '').trim();
     const city = String(r[COL_CITY] || '').trim();
-    // Skip if no IP, or has valid geo (non-empty city that isn't a failure marker)
+    const isp  = String(r[COL_ISP]  || '').trim();
+    // Skip if no IP, or has fully valid geo (non-empty city AND non-empty ISP,
+    // neither being a failure marker). Rows with city but blank ISP are re-enriched.
     const isBadGeo = city === 'failed' || city === 'error' || city === 'unknown';
-    if (!ip || (city && !isBadGeo)) return;
+    if (!ip || (city && isp && !isBadGeo)) return;
 
     // Try geo cache first; if failed or missing, attempt a fresh lookup
     let g = geoMap[ip];
