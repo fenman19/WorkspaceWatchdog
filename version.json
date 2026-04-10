@@ -1,8 +1,9 @@
 {
-  "version": "3.4.17",
-  "released": "2026-04-02",
+  "version": "3.5.0",
+  "released": "2026-04-10",
   "changelog": [
-    "v3.4.17 — Fixed Geolocation API issue that caused blank Geolocation data",
+    "v3.5.0 — Major refactor: split monolithic Code.gs into 13 focused files for easier maintenance. Fixed OU cache sync issue that caused slow OU loading on large domains. Fixed duplicate _loadOUMap_ that caused slow GeoCache loading.",
+    "v3.4.17 — Fixed Geolocation API issue that caused blank Geolocation data.",
     "v3.4.16 — Fixed Campus IP Filter not applying during backfill (config was not being loaded before the backfill loop ran).",
     "v3.4.15 — Extended Campus IP Filter to backfill — campus IPs are now also excluded when running a backfill.",
     "v3.4.14 — Fixed Campus IP Filter setting not persisting in Settings UI after save.",
