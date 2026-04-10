@@ -5,8 +5,8 @@
  */
 
 const UPDATER = {
-  REPO_RAW: 'https://raw.githubusercontent.com/WorkspaceWatchdog/WorkspaceWatchdog/main',
-  VERSION_URL: 'https://raw.githubusercontent.com/WorkspaceWatchdog/WorkspaceWatchdog/main/version.json',
+  REPO_RAW: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/refactor/split-gs-files',
+  VERSION_URL: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/refactor/split-gs-files/version.json',
   FILES: [
     { name: 'Code',         filename: 'Code.gs',           type: 'SERVER_JS' },
     { name: 'Utils',        filename: 'Utils.gs',           type: 'SERVER_JS' },
