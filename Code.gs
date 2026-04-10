@@ -1,7 +1,27 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Code.gs — Entry points: onOpen menu, onInstall, doGet, scheduledSync trigger.
- * All heavy lifting delegated to dedicated system files.
+/* global AdminReports, AdminDirectory */
+/**
+ * Workspace Watchdog v3.5.0
+ * Code.gs — Entry points only: onOpen menu, onInstall, doGet, scheduledSync trigger.
+ * All heavy lifting delegated to dedicated system files:
+ *   Utils.gs      — CONFIG, constants, headers, cache indexes, shared helpers
+ *   Setup.gs      — Installation, Setup Wizard, Settings Panel
+ *   Sync.gs       — Core sync engine, fetch, trim, backfill, diagnostics
+ *   Geo.gs        — Geolocation, GeoCache, IP reputation
+ *   OrgUnit.gs    — OU cache, bulk Directory load, OU filter
+ *   Detection.gs  — Active Now, Suspicious detection, risk scoring
+ *   Alerts.gs     — Google Chat alerts, whitelist, dedup
+ *   Reports.gs    — Daily digest, weekly report, on-demand reports
+ *   MapData.gs    — Live map data feeds
+ *   Licensing.gs  — Version checking, auto-updater
+ *   Archive.gs    — Archive pruning
+ *   YearEnd.gs    — Year-End Data Reset
+ *   Refactored from monolithic Code.gs (5,526 lines) into 13 focused files.
+ *   Fixed OU cache sync issue causing slow OU loading on large domains.
+ *   Fixed duplicate _loadOUMap_ causing slow GeoCache loading.
+ *   Code.gs — Entry points: onOpen menu, onInstall, doGet, scheduledSync trigger.
+ *   All heavy lifting delegated to dedicated system files.
  */
 
 function onOpen() {
