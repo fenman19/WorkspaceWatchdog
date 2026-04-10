@@ -39,6 +39,7 @@ function _loadOUMap_() {
   }
   __OU_INDEX = map;
   __OU_ROW_INDEX = rowIdx;
+  __OU_MAP_CACHE = map; // keep singleton in sync so __getOUMap() doesn't re-read the sheet
   return map;
 }
 

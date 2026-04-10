@@ -112,7 +112,10 @@ var __KEY_INDEX = null;
 // ===== OU Map Singleton =======================================================
 var __OU_MAP_CACHE = null;
 function __getOUMap() {
-  if (!__OU_MAP_CACHE) __OU_MAP_CACHE = _loadOUMap_();
+  if (!__OU_MAP_CACHE) {
+    __OU_MAP_CACHE = _loadOUMap_();
+    __OU_INDEX = __OU_MAP_CACHE; // keep both in sync
+  }
   return __OU_MAP_CACHE;
 }
 
