@@ -4796,18 +4796,30 @@ function _json_(obj) {
 }
 // ============================================================
 // UPDATER — GitHub-based auto-update system
-// Repo: https://github.com/fenman19/WorkspaceWatchdog
+// Repo: https://github.com/fenman19/WorkspaceWatchdog/refactor/split-gs-files
 // ============================================================
 
 const UPDATER = {
-  REPO_RAW: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/main',
-  VERSION_URL: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/main/version.json',
+  REPO_RAW: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/refactor/split-gs-files',
+  VERSION_URL: 'https://raw.githubusercontent.com/fenman19/WorkspaceWatchdog/refactor/split-gs-files/version.json',
   FILES: [
     { name: 'Code',         filename: 'Code.gs',           type: 'SERVER_JS' },
+    { name: 'Utils',        filename: 'Utils.gs',          type: 'SERVER_JS' },
+    { name: 'Setup',        filename: 'Setup.gs',          type: 'SERVER_JS' },
+    { name: 'Sync',         filename: 'Sync.gs',           type: 'SERVER_JS' },
+    { name: 'Geo',          filename: 'Geo.gs',            type: 'SERVER_JS' },
+    { name: 'OrgUnit',      filename: 'OrgUnit.gs',        type: 'SERVER_JS' },
+    { name: 'Detection',    filename: 'Detection.gs',      type: 'SERVER_JS' },
+    { name: 'Alerts',       filename: 'Alerts.gs',         type: 'SERVER_JS' },
+    { name: 'Reports',      filename: 'Reports.gs',        type: 'SERVER_JS' },
+    { name: 'MapData',      filename: 'MapData.gs',        type: 'SERVER_JS' },
+    { name: 'Licensing',    filename: 'Licensing.gs',      type: 'SERVER_JS' },
+    { name: 'Archive',      filename: 'Archive.gs',        type: 'SERVER_JS' },
+    { name: 'YearEnd',      filename: 'YearEnd.gs',        type: 'SERVER_JS' },
     { name: 'SetupWizard',  filename: 'SetupWizard.html',  type: 'HTML'      },
     { name: 'Settings',     filename: 'Settings.html',     type: 'HTML'      },
     { name: 'Updates',      filename: 'Updates.html',      type: 'HTML'      },
-    { name: 'LiveMap',      filename: 'LiveMap.html',       type: 'HTML'      }
+    { name: 'LiveMap',      filename: 'LiveMap.html',      type: 'HTML'      }
   ],
   PROP_VERSION:    'WW_INSTALLED_VERSION',
   PROP_LAST_CHECK: 'WW_LAST_UPDATE_CHECK'
