@@ -1,6 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
- * Google Workspace Login Monitor v3.4.17
+ * Google Workspace Login Monitor v3.4.18
+ * Start Migration to split code
  * Fixed Geolocation API issues
  * Fixed Campus IP Filter not applying during backfill (_applyRuntimeConfig_ was not called)
  * Fixed Report Generator Issues
