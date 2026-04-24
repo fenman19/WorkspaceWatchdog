@@ -1,7 +1,8 @@
 {
-  "version": "3.4.17",
+  "version": "3.4.18",
   "released": "2026-04-02",
   "changelog": [
+    "v3.4.18 - Changed link to refactored Code to get users connected to split code version",
     "v3.4.17 — Fixed Geolocation API issue that caused blank Geolocation data",
     "v3.4.16 — Fixed Campus IP Filter not applying during backfill (config was not being loaded before the backfill loop ran).",
     "v3.4.15 — Extended Campus IP Filter to backfill — campus IPs are now also excluded when running a backfill.",
