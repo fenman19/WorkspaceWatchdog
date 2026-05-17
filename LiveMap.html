@@ -771,6 +771,7 @@ var map, clusterGroup, arcLayer;
 var activeNowCount = 0;
 var allRows = [], suspRows = [], suspArcs = [];
 var mode = 'main', evtType = 'all', autoTimer = null;
+var _reloadInFlight = false;
 
 // Init map FIRST before any google.script.run calls
 map = L.map('map', { zoomControl: true }).setView([37, -96], 4);
@@ -1255,17 +1256,17 @@ function setEvt(t) {
 }
 
 function reload() {
+  if (_reloadInFlight) return; // prevent overlapping calls
+  _reloadInFlight = true;
   setLoading(true);
   clearMarkers();
   _riskScoreCache = {}; // clear cache on reload so scores stay fresh
   window._riskScores = {}; // clear backend risk scores
-  window._lastMapRefresh = Date.now(); // mark attempt time immediately
-  updateMapRefreshedAge();
   loadActiveNowCount();
   if (mode === 'main') {
     google.script.run
-      .withSuccessHandler(function(d) { onMain(d); setLoading(false); })
-      .withFailureHandler(function(e) { setLoading(false); showErr(e); })
+      .withSuccessHandler(function(d) { _reloadInFlight = false; onMain(d); setLoading(false); })
+      .withFailureHandler(function(e) { _reloadInFlight = false; setLoading(false); showErr(e); })
       .getLiveMapData({
         maxRows: 2000, eventType: evtType,
         outsideUS: document.getElementById('chkOutsideUS').checked,
@@ -1274,13 +1275,13 @@ function reload() {
       });
   } else if (mode === 'active') {
     google.script.run
-      .withSuccessHandler(function(d) { onActive(d); setLoading(false); })
-      .withFailureHandler(function(e) { setLoading(false); showErr(e); })
+      .withSuccessHandler(function(d) { _reloadInFlight = false; onActive(d); setLoading(false); })
+      .withFailureHandler(function(e) { _reloadInFlight = false; setLoading(false); showErr(e); })
       .getActiveNowMapData();
   } else {
     google.script.run
-      .withSuccessHandler(function(d) { onSusp(d); setLoading(false); })
-      .withFailureHandler(function(e) { setLoading(false); showErr(e); })
+      .withSuccessHandler(function(d) { _reloadInFlight = false; onSusp(d); setLoading(false); })
+      .withFailureHandler(function(e) { _reloadInFlight = false; setLoading(false); showErr(e); })
       .getSuspiciousMapData();
   }
 }
@@ -1364,6 +1365,8 @@ function mkCluster() {
 }
 
 function onMain(d) {
+  window._lastMapRefresh = Date.now(); // stamp when data actually arrives
+  updateMapRefreshedAge();
   allRows = d.rows || [];
   // Store full chart data from server (includes all rows, not just geo-tagged)
   window._chartData  = { days: d.chartDays || null, hours: d.chartHours || null };
@@ -1422,6 +1425,8 @@ function onMain(d) {
 }
 
 function onActive(d) {
+  window._lastMapRefresh = Date.now(); // stamp when data actually arrives
+  updateMapRefreshedAge();
   allRows = d.rows || [];
   clusterGroup = mkCluster();
   allRows.forEach(function(r) {
@@ -1445,6 +1450,8 @@ function onActive(d) {
 }
 
 function onSusp(d) {
+  window._lastMapRefresh = Date.now(); // stamp when data actually arrives
+  updateMapRefreshedAge();
   suspRows = d.rows || []; suspArcs = d.arcs || []; allRows = suspRows;
   clusterGroup = mkCluster();
   suspRows.forEach(function(r) {
