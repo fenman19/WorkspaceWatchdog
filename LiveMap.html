@@ -1422,6 +1422,13 @@ function onMain(d) {
   if (chartsOpen) renderCharts(allRows);
   // Feed globe if active
   if (globeInitialized && document.getElementById('globeToggle').checked) feedGlobeData();
+  // If suspicious overlay is active, silently re-fetch it so alert panel stays current
+  if (suspOverlayActive) {
+    google.script.run
+      .withSuccessHandler(function(d) { drawSuspOverlay(d); })
+      .withFailureHandler(function() {}) // silent — don't interrupt the main view
+      .getSuspiciousMapData();
+  }
 }
 
 function onActive(d) {
@@ -1447,6 +1454,13 @@ function onActive(d) {
   document.getElementById('sbRight').textContent = 'Last loaded: ' + new Date().toLocaleTimeString();
   // Feed globe if active
   if (globeInitialized && document.getElementById('globeToggle').checked) feedGlobeData();
+  // If suspicious overlay is active, silently re-fetch it so alert panel stays current
+  if (suspOverlayActive) {
+    google.script.run
+      .withSuccessHandler(function(d) { drawSuspOverlay(d); })
+      .withFailureHandler(function() {}) // silent — don't interrupt the main view
+      .getSuspiciousMapData();
+  }
 }
 
 function onSusp(d) {
