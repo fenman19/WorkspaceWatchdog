@@ -1,7 +1,8 @@
 {
-  "version": "3.5.1",
-  "released": "2026-05-16",
+  "version": "3.5.2",
+  "released": "2026-05-21",
   "changelog": [
+    "v3.5.2 — Fixed suspicious overlay and globe alert panel not refreshing: overlay data is now silently re-fetched on every map reload so active alerts stay current without toggling the overlay off and on.",
     "v3.5.1 — Fixed Live Map refresh not showing latest data: map refresh timestamp now stamps on data arrival instead of request start. Added in-flight guard to prevent overlapping auto-refresh calls from overwriting newer data with stale responses.",
     "v3.5.0 — Major refactor: split monolithic Code.gs into 13 focused files for easier maintenance. Fixed OU cache sync issue that caused slow OU loading on large domains. Fixed duplicate _loadOUMap_ that caused slow GeoCache loading.",
     "v3.4.17 — Fixed Geolocation API issue that caused blank Geolocation data.",
