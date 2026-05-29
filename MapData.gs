@@ -156,6 +156,10 @@ function getSuspiciousMapData() {
     const keyA    = String(r[14] || '');
     const keyB    = String(r[15] || '');
     const severity= r[18];
+    const fromIp  = String(r[19] || '');
+    const fromIsp = String(r[20] || '');
+    const toIp    = String(r[21] || '');
+    const toIsp   = String(r[22] || '');
 
     let resolvedLL = fromLL;
     if (!resolvedLL || !resolvedLL.includes(',')) {
@@ -163,16 +167,16 @@ function getSuspiciousMapData() {
     }
 
     rows.push({ ts, email, reason, details,
-                fromCity, fromReg, fromCo, fromLL: resolvedLL,
-                toCity, toReg, toCo, toLL, dist, speed, severity });
+                fromIp, fromIsp, fromCity, fromReg, fromCo, fromLL: resolvedLL,
+                toIp, toIsp, toCity, toReg, toCo, toLL, dist, speed, severity });
 
     if (reason === 'Impossible Travel' && fromLL && toLL &&
         fromLL.includes(',') && toLL.includes(',')) {
       const fp = fromLL.split(','), tp = toLL.split(',');
       arcs.push({
         email, details, dist, speed,
-        from: { lat: Number(fp[0]), lon: Number(fp[1]), city: fromCity, region: fromReg, country: fromCo },
-        to:   { lat: Number(tp[0]), lon: Number(tp[1]), city: toCity,   region: toReg,   country: toCo   }
+        from: { lat: Number(fp[0]), lon: Number(fp[1]), ip: fromIp, isp: fromIsp, city: fromCity, region: fromReg, country: fromCo },
+        to:   { lat: Number(tp[0]), lon: Number(tp[1]), ip: toIp,   isp: toIsp,   city: toCity,   region: toReg,   country: toCo   }
       });
     }
   }
