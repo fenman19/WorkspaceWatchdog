@@ -1,14 +1,9 @@
 {
-  "version": "3.5.2",
-  "released": "2026-05-21",
+  "version": "3.5.3",
   "changelog": [
-    "v3.5.2 — Fixed suspicious overlay and globe alert panel not refreshing: overlay data is now silently re-fetched on every map reload so active alerts stay current without toggling the overlay off and on.",
-    "v3.5.1 — Fixed Live Map refresh not showing latest data: map refresh timestamp now stamps on data arrival instead of request start. Added in-flight guard to prevent overlapping auto-refresh calls from overwriting newer data with stale responses.",
-    "v3.5.0 — Major refactor: split monolithic Code.gs into 13 focused files for easier maintenance. Fixed OU cache sync issue that caused slow OU loading on large domains. Fixed duplicate _loadOUMap_ that caused slow GeoCache loading.",
-    "v3.4.17 — Fixed Geolocation API issue that caused blank Geolocation data.",
-    "v3.4.16 — Fixed Campus IP Filter not applying during backfill (config was not being loaded before the backfill loop ran).",
-    "v3.4.15 — Extended Campus IP Filter to backfill — campus IPs are now also excluded when running a backfill.",
-    "v3.4.14 — Fixed Campus IP Filter setting not persisting in Settings UI after save.",
-    "v3.4.13 — Added Campus IP Filter: logins from specified public IPs are silently dropped at ingestion and never written to Main. Configure via Settings > Campus IP Filter (comma-separated IPs)."
+    "Added IP address and ISP information to Suspicious sheet (From IP, From ISP, To IP, To ISP columns)",
+    "IP and ISP now included in Impossible Travel and Login Burst alert notifications",
+    "Suspicious sheet migration automatically runs on first sync after update",
+    "Fixed getSuspiciousMapData to pass IP/ISP through to LiveMap for future use"
   ]
 }
