@@ -205,10 +205,13 @@ function _maybeAlertImpossibleTravel_(triggerName, email, a, b, miles, mph) {
   if (_isAlertedPermanently_(permKey)) return;
   const fromLoc = [a.city, a.region, a.country].filter(Boolean).join(', ') || 'Unknown';
   const toLoc   = [b.city, b.region, b.country].filter(Boolean).join(', ') || 'Unknown';
+  const fromIp  = a.ip ? a.ip + (_cleanIsp_(a.isp||'') ? ' (' + _cleanIsp_(a.isp) + ')' : '') : '';
+  const toIp    = b.ip ? b.ip + (_cleanIsp_(b.isp||'') ? ' (' + _cleanIsp_(b.isp) + ')' : '') : '';
   const msg =
     'Impossible Travel Detected\n' +
     'User:     ' + email + '\n' +
-    'From:     ' + fromLoc + '  -> To: ' + toLoc + '\n' +
+    'From:     ' + fromLoc + (fromIp ? '  [' + fromIp + ']' : '') + '\n' +
+    'To:       ' + toLoc   + (toIp   ? '  [' + toIp   + ']' : '') + '\n' +
     'Distance: ' + Math.round(miles) + ' mi  |  Speed: ~' + Math.round(mph) + ' mph\n' +
     'Time A:   ' + _fmtCT(a.ts) + '\n' +
     'Time B:   ' + _fmtCT(b.ts);
@@ -216,18 +219,19 @@ function _maybeAlertImpossibleTravel_(triggerName, email, a, b, miles, mph) {
   sendChatAlert_(msg);
 }
 
-function _maybeAlertLoginBurst_(triggerName, email, count, windowMin, firstTs, lastTs, firstKey, lastKey) {
+function _maybeAlertLoginBurst_(triggerName, email, count, windowMin, firstTs, lastTs, firstKey, lastKey, lastIp, lastIsp) {
   if (!CONFIG.CHAT_ALERT_ON_BURST) return;
   if (!_alertsEnabled_(triggerName)) return;
   if (_isWhitelisted_(email, null)) return;
   const permKey = String(firstKey || '') + '_' + String(lastKey || '');
   if (_isAlertedPermanently_(permKey)) return;
+  const ipLine = lastIp ? '\nIP:     ' + lastIp + (_cleanIsp_(lastIsp||'') ? ' (' + _cleanIsp_(lastIsp) + ')' : '') : '';
   const msg =
     'Login Burst Detected\n' +
     'User:   ' + email + '\n' +
     'Events: ' + count + ' logins in <= ' + windowMin + ' minute(s)\n' +
     'From:   ' + _fmtCT(firstTs) + '\n' +
-    'To:     ' + _fmtCT(lastTs);
+    'To:     ' + _fmtCT(lastTs) + ipLine;
   _markAlertedPermanently_(permKey);
   sendChatAlert_(msg);
 }
