@@ -14,11 +14,20 @@ function migrateSuspiciousSheet() {
     SpreadsheetApp.getActive().toast('Suspicious sheet already up to date.', 'Watchdog', 3);
     return;
   }
-  shSusp.getRange(1, expectedCols).setValue('Alerted');
+  // New columns are appended at the end — just pad existing rows with blanks
+  // and write the full header row. No remapping needed.
   const lastRow = shSusp.getLastRow();
-  if (lastRow > 1) shSusp.getRange(2, expectedCols, lastRow - 1, 1).setValue('');
+  _setHeaders(shSusp, SUSP_HEADERS);
+  if (lastRow > 1) {
+    const existing = shSusp.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    const padded = existing.map(r => {
+      while (r.length < expectedCols) r.push('');
+      return r;
+    });
+    shSusp.getRange(2, 1, padded.length, expectedCols).setValues(padded);
+  }
   SpreadsheetApp.getActive().toast(
-    'Added Alerted column to Suspicious sheet. ' + (lastRow - 1) + ' rows updated.',
+    'Suspicious sheet updated to ' + expectedCols + ' columns. ' + (lastRow - 1) + ' rows updated.',
     'Workspace Watchdog', 5);
 }
 
@@ -167,8 +176,8 @@ function _refreshSuspicious_(triggerName) {
     const numCols = Math.min(shSusp.getLastColumn(), SUSP_HEADERS.length);
     const existing = shSusp.getRange(2, 1, shSusp.getLastRow() - 1, numCols).getValues();
     existing.forEach(r => {
-      if (r.length >= 20 && String(r[19]) === 'Yes') {
-        alertedKeys.add(String(r[14]) + '_' + String(r[15] || ''));
+      if (r.length >= SUSP_HEADERS.length && String(r[SUSP_HEADERS.indexOf('Alerted')]) === 'Yes') {
+        alertedKeys.add(String(r[SUSP_HEADERS.indexOf('EventKey A')]) + '_' + String(r[SUSP_HEADERS.indexOf('EventKey B')] || ''));
       }
     });
   }
@@ -177,14 +186,14 @@ function _refreshSuspicious_(triggerName) {
   const keepCutoff   = new Date(Date.now() - CONFIG.KEEP_DAYS * 24 * 3600000);
   const retainedAlerted = new Set();
   const retained = existingSusp.filter(r => {
-    try { return new Date(r[16] || r[0]) >= keepCutoff; } catch(_) { return true; }
+    try { return new Date(r[SUSP_HEADERS.indexOf('SuspNoTZ')] || r[0]) >= keepCutoff; } catch(_) { return true; }
   }).map(r => {
     while (r.length < SUSP_HEADERS.length) r.push('');
     return r;
   });
   retained.forEach(r => {
     if (String(r[SUSP_HEADERS.length - 1]) === 'Yes') {
-      retainedAlerted.add(String(r[14]) + '_' + String(r[15] || ''));
+      retainedAlerted.add(String(r[SUSP_HEADERS.indexOf('EventKey A')]) + '_' + String(r[SUSP_HEADERS.indexOf('EventKey B')] || ''));
     }
   });
 
@@ -216,8 +225,12 @@ function _refreshSuspicious_(triggerName) {
       const ouAlerted  = _isAlertedPermanently_(ouAlertKey) ? 'Yes' : '';
       out.push([
         _fmtCT(r.ts), r.email, 'Outside US', 'Country=' + r.country,
-        '', '', '', '', '', '', '', '', '', '', r.key, '',
-        ...tail, ouAlerted
+        r.city||'', r.region||'', r.country||'', '',
+        '', '', '', '',
+        '', '', r.key, '',
+        ...tail,
+        r.ip||'', _cleanIsp_(r.isp||''), '', '',
+        ouAlerted
       ]);
       if (!ouAlerted) _markAlertedPermanently_(ouAlertKey);
     }
@@ -239,10 +252,12 @@ function _refreshSuspicious_(triggerName) {
         out.push([
           _fmtCT(last.ts), email, 'Login Burst', c + ' events <= ' + CONFIG.BURST_WINDOW_MIN + ' min',
           '', '', '', '', '', '', '', '', '', '', evs[i].key, last.key,
-          ...tail, burstAlerted
+          ...tail,
+          last.ip||'', _cleanIsp_(last.isp||''), '', '',
+          burstAlerted
         ]);
         if (!burstAlerted) {
-          _maybeAlertLoginBurst_(triggerName, email, c, CONFIG.BURST_WINDOW_MIN, evs[i].ts, last.ts, evs[i].key, last.key);
+          _maybeAlertLoginBurst_(triggerName, email, c, CONFIG.BURST_WINDOW_MIN, evs[i].ts, last.ts, evs[i].key, last.key, last.ip||'', last.isp||'');
           _markAlertedPermanently_(burstAlertKey);
         }
         i = j - 1;
@@ -277,7 +292,9 @@ function _refreshSuspicious_(triggerName) {
             a.city||'', a.region||'', a.country||'', _fmtLatLng_(a.lat, a.lon),
             b.city||'', b.region||'', b.country||'', _fmtLatLng_(b.lat, b.lon),
             Number(miles.toFixed(1)), Number(mph.toFixed(0)), a.key, b.key,
-            ...tail, travelAlerted
+            ...tail,
+            a.ip||'', _cleanIsp_(a.isp||''), b.ip||'', _cleanIsp_(b.isp||''),
+            travelAlerted
           ]);
           if (!travelAlerted) {
             _maybeAlertImpossibleTravel_(triggerName, email, a, b, miles, mph);
