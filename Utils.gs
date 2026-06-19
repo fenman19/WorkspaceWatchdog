@@ -62,8 +62,34 @@ let CONFIG = {
   IP_REP_MIN_SCORE: 25,
   IP_REP_CACHE_DAYS: 3,
   // Campus IP Filter
-  CAMPUS_IP_FILTER: ''
+  CAMPUS_IP_FILTER: '',
+  // Mobile/cellular IP filtering (Impossible Travel only)
+  IGNORE_MOBILE_IMPOSSIBLE_TRAVEL: true,
+  MOBILE_ISP_LIST: ''
 };
+
+// Exact-match ISP names (case-insensitive) to treat as mobile/cellular for
+// Impossible Travel suppression. Populated from the admin-selected checkboxes
+// in Settings (backed by the MOBILE_ISP_LIST script property) — see Geo.gs
+// getKnownIsps() / DEFAULT_MOBILE_ISPS for the picker that builds this list.
+// Exact match (not substring) is used deliberately: an admin checking
+// "Verizon Business" should not also silently suppress an unrelated ISP that
+// merely contains the word "Verizon".
+function _mobileIspSet_() {
+  const raw = String(CONFIG.MOBILE_ISP_LIST || '');
+  const set = new Set();
+  raw.split(',').forEach(s => {
+    const v = s.trim().toLowerCase();
+    if (v) set.add(v);
+  });
+  return set;
+}
+
+function _isMobileIsp_(isp) {
+  if (!isp) return false;
+  if (!CONFIG.MOBILE_ISP_LIST) return false;
+  return _mobileIspSet_().has(String(isp).trim().toLowerCase());
+}
 
 // ===== Cache Indexes (large-domain performance) ==============================
 var __GEO_INDEX = null;      // IP  -> geo object
@@ -187,6 +213,8 @@ function _applyRuntimeConfig_() {
   CONFIG.IP_REP_MIN_SCORE                = num ('IP_REP_MIN_SCORE',                CONFIG.IP_REP_MIN_SCORE);
   CONFIG.IP_REP_CACHE_DAYS               = num ('IP_REP_CACHE_DAYS',               CONFIG.IP_REP_CACHE_DAYS);
   CONFIG.CAMPUS_IP_FILTER                = str ('CAMPUS_IP_FILTER',                CONFIG.CAMPUS_IP_FILTER);
+  CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL  = bool('IGNORE_MOBILE_IMPOSSIBLE_TRAVEL',  CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL);
+  CONFIG.MOBILE_ISP_LIST                  = str ('MOBILE_ISP_LIST',                 CONFIG.MOBILE_ISP_LIST);
 }
 
 // ===== Cache Reset ============================================================
