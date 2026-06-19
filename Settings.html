@@ -143,7 +143,7 @@
     <div class="card-title collapsible collapsed" onclick="toggleCard(this)">
       Suspicious Thresholds <span class="caret">&#9660;</span>
     </div>
-    <div class="card-body collapsed" style="max-height:400px;">
+    <div class="card-body collapsed" style="max-height:900px;">
       <div class="grid" style="margin-top:10px;">
         <label for="burstCount">Burst login count</label>
         <input id="burstCount" type="number" value="5">
@@ -157,8 +157,40 @@
         <label for="impossibleMph">Impossible travel mph</label>
         <input id="impossibleMph" type="number" value="500">
       </div>
+
+      <div class="checkbox-row" style="margin-top:10px;">
+        <input id="ignoreMobileImpossibleTravel" type="checkbox" checked>
+        <label for="ignoreMobileImpossibleTravel">Ignore selected carrier IPs for Impossible Travel</label>
+      </div>
+      <div class="hint" style="margin-top:4px; margin-bottom:10px;">
+        Suppresses Impossible Travel alerts when either login's ISP matches a checked carrier below.
+        Mobile and carrier-grade-NAT networks frequently reassign IPs across cell towers, which can
+        falsely look like cross-country travel. Outside-US and Login Burst detection are unaffected.
+      </div>
+
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">
+        Carrier / ISP list
+        <span style="font-weight:normal; color:#5f6368;">(pulled from your GeoCache — check any ISP to ignore for Impossible Travel)</span>
+      </label>
+      <div class="ou-picker" id="mobileIspPicker" style="max-height:200px;">
+        <span class="ou-empty">Loading ISPs from cache...</span>
+      </div>
+      <div class="ou-actions">
+        <button onclick="selectAllMobileIsps()">Select all</button>
+        <button onclick="clearAllMobileIsps()">Clear all</button>
+        <button onclick="refreshMobileIspList()">&#8635; Refresh list</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="mobileIspListRaw" style="font-size:12px; font-weight:600; color:#5f6368;">
+          Or type ISP names manually (comma-separated, exact match):
+        </label>
+        <input id="mobileIspListRaw" type="text" class="wide"
+               placeholder="AT&amp;T Enterprises, LLC,Verizon Business"
+               style="margin-top:4px; font-family: monospace;">
+      </div>
     </div>
   </div>
+
 
   <!-- ── Cache & TTL ─────────────────────────────────── -->
   <div class="card">
@@ -441,8 +473,68 @@
         .getMonitorableOUs();
     }
 
+    // ── Mobile ISP picker helpers ───────────────────────────────────────────────
+    var _loadedIsps = [];
+
+    function renderMobileIspPicker(isps, currentCSV) {
+      _loadedIsps = isps || [];
+      var picker   = document.getElementById('mobileIspPicker');
+      var selected = new Set(
+        (currentCSV || '').split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
+      );
+      if (!_loadedIsps.length) {
+        picker.innerHTML = '<span class="ou-empty">No ISPs found yet. Run a sync first, then click &#8635; Refresh list.</span>';
+        return;
+      }
+      picker.innerHTML = _loadedIsps.map(function(isp) {
+        var checked = selected.has(isp.toLowerCase()) ? 'checked' : '';
+        var escaped = isp.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                          .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return '<label>' +
+          '<input type="checkbox" value="' + escaped + '" ' + checked + ' onchange="syncMobileIspRawFromPicker()">' +
+          escaped + '</label>';
+      }).join('');
+    }
+
+    function syncMobileIspRawFromPicker() {
+      var checked = Array.from(
+        document.querySelectorAll('#mobileIspPicker input[type=checkbox]:checked')
+      ).map(function(cb) { return cb.value; });
+      document.getElementById('mobileIspListRaw').value = checked.join(',');
+    }
+
+    function syncMobileIspPickerFromRaw() {
+      renderMobileIspPicker(_loadedIsps, document.getElementById('mobileIspListRaw').value);
+    }
+
+    function selectAllMobileIsps() {
+      document.querySelectorAll('#mobileIspPicker input[type=checkbox]').forEach(function(cb) { cb.checked = true; });
+      syncMobileIspRawFromPicker();
+    }
+
+    function clearAllMobileIsps() {
+      document.querySelectorAll('#mobileIspPicker input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('mobileIspListRaw').value = '';
+    }
+
+    function refreshMobileIspList() {
+      setGlobalStatus('Refreshing ISP list...');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          var currentRaw = document.getElementById('mobileIspListRaw').value || res.current;
+          renderMobileIspPicker(res.isps, currentRaw);
+          if (!document.getElementById('mobileIspListRaw').value) {
+            document.getElementById('mobileIspListRaw').value = res.current || '';
+          }
+          setGlobalStatus(res.isps.length + ' ISPs loaded.', true);
+        })
+        .withFailureHandler(function(err) { setGlobalStatus(err.message || String(err), false); })
+        .getKnownIsps();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('monitorOUsRaw').addEventListener('input', syncPickerFromRaw);
+      document.getElementById('mobileIspListRaw').addEventListener('input', syncMobileIspPickerFromRaw);
     });
 
     // ── Get full form ─────────────────────────────────────────────────────────
@@ -461,6 +553,8 @@
         burstWindowMin:              document.getElementById('burstWindowMin').value,
         impossibleMinMiles:          document.getElementById('impossibleMinMiles').value,
         impossibleMph:               document.getElementById('impossibleMph').value,
+        ignoreMobileImpossibleTravel: document.getElementById('ignoreMobileImpossibleTravel').checked,
+        mobileIspList:               document.getElementById('mobileIspListRaw').value.trim(),
         ipinfoToken:                 document.getElementById('ipinfoToken').value,
         trimAfterSync:               document.getElementById('trimAfterSync').checked,
         activeIncludeToken:          document.getElementById('activeIncludeToken').checked,
@@ -500,6 +594,7 @@
       document.getElementById('burstWindowMin').value             = cfg.burstWindowMin             || 2;
       document.getElementById('impossibleMinMiles').value         = cfg.impossibleMinMiles         || 50;
       document.getElementById('impossibleMph').value              = cfg.impossibleMph              || 500;
+      document.getElementById('ignoreMobileImpossibleTravel').checked = (cfg.ignoreMobileImpossibleTravel !== false);
       document.getElementById('ipinfoToken').value                = cfg.ipinfoToken                || '';
       document.getElementById('trimAfterSync').checked            = !!cfg.trimAfterSync;
       document.getElementById('activeIncludeToken').checked       = !!cfg.activeIncludeToken;
@@ -543,6 +638,15 @@
         .withSuccessHandler(function(res) { renderOUPicker(res.ous, monitorOUsRaw || res.current); })
         .withFailureHandler(function() {})
         .getMonitorableOUs();
+
+      var mobileIspListRaw = cfg.mobileIspList || '';
+      document.getElementById('mobileIspListRaw').value = mobileIspListRaw;
+
+      // Load Mobile ISP picker
+      google.script.run
+        .withSuccessHandler(function(res) { renderMobileIspPicker(res.isps, mobileIspListRaw || res.current); })
+        .withFailureHandler(function() {})
+        .getKnownIsps();
 
       loadMapUsers();
       loadWhitelistNow();
