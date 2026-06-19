@@ -1,9 +1,11 @@
 {
-  "version": "3.5.3",
+  "version": "3.6.0",
+  "released": "2026-06-19",
   "changelog": [
-    "Added IP address and ISP information to Suspicious sheet (From IP, From ISP, To IP, To ISP columns)",
-    "IP and ISP now included in Impossible Travel and Login Burst alert notifications",
-    "Suspicious sheet migration automatically runs on first sync after update",
-    "Fixed getSuspiciousMapData to pass IP/ISP through to LiveMap for future use"
+    "Added per-ISP picker in Settings to filter mobile carrier IPs from Impossible Travel detection",
+    "Built full license enforcement system with phase-based warnings and shutdown",
+    "Added warning toasts at 15, 7, and 1 days before license expiry",
+    "Map and sync now lock/stop after grace period expires (7 days trial, 30 days paid, never for lifetime)",
+    "License re-validates against server approximately every 20 hours"
   ]
 }
