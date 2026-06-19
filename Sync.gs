@@ -6,6 +6,11 @@
 function scheduledSync() {
   _applyRuntimeConfig_();
 
+  // Keep license state fresh even on sheets that run unattended for days at
+  // a time — onOpen() alone can't be relied on for that. This is throttled
+  // internally to ~once per 20 hours, so calling it on every sync run is safe.
+  try { _maybeRevalidateLicense_(); } catch (e) { /* never let this block sync */ }
+
   var state = _getLicenseState_();
   if (state.phase === 'shutdown') {
     _logShutdownSkipOncePerDay_(state);
