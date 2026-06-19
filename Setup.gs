@@ -221,9 +221,17 @@ function getWizardConfig() {
     digestEmailTo:      CONFIG.DIGEST_EMAIL_TO,
     digestHour:       CONFIG.DIGEST_HOUR,
     campusIpFilter:   CONFIG.CAMPUS_IP_FILTER || '',
+    ignoreMobileImpossibleTravel: CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL,
+    mobileIspList: CONFIG.MOBILE_ISP_LIST || '',
     installed: p.getProperty('INSTALL_COMPLETE') === 'true',
     installVersion: p.getProperty('INSTALL_VERSION') || '',
-    installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || ''
+    installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || '',
+    // License
+    licenseToken:  p.getProperty('WW_LICENSE_KEY')    || '',
+    licenseTier:   p.getProperty('WW_LICENSE_TIER')   || '',
+    licenseDomain: p.getProperty('WW_LICENSE_DOMAIN') || '',
+    licenseExpires: p.getProperty('WW_LICENSE_EXPIRES') || '',
+    licensePhase:   _getLicenseState_().phase
   };
 }
 
@@ -269,7 +277,9 @@ function saveWizardConfig(form) {
     DIGEST_COMPARISON:               cleanBool(form.digestComparison),
     DIGEST_EMAIL_TO:                 String(form.digestEmailTo || '').trim(),
     DIGEST_HOUR:                     cleanNum(form.digestHour, 7),
-    CAMPUS_IP_FILTER:                String(form.campusIpFilter || '').trim()
+    CAMPUS_IP_FILTER:                String(form.campusIpFilter || '').trim(),
+    IGNORE_MOBILE_IMPOSSIBLE_TRAVEL: cleanBool(form.ignoreMobileImpossibleTravel),
+    MOBILE_ISP_LIST:                 String(form.mobileIspList || '').trim()
   });
   if (form.chatWebhookUrl && form.chatWebhookUrl.trim()) {
     PropertiesService.getScriptProperties().setProperty('CHAT_WEBHOOK_URL', form.chatWebhookUrl.trim());
@@ -353,6 +363,8 @@ function _saveSetupSummaryToSheet_() {
     ['BURST_WINDOW_MIN', cfg.burstWindowMin],
     ['IMPOSSIBLE_MIN_MILES', cfg.impossibleMinMiles],
     ['IMPOSSIBLE_MPH', cfg.impossibleMph],
+    ['IGNORE_MOBILE_IMPOSSIBLE_TRAVEL', cfg.ignoreMobileImpossibleTravel ? 'TRUE' : 'FALSE'],
+    ['MOBILE_ISP_LIST', cfg.mobileIspList || '(none selected)'],
     ['GEO_TTL_HOURS', cfg.geoTtlHours],
     ['OU_TTL_HOURS', cfg.ouTtlHours],
     ['KEEP_DAYS', cfg.keepDays],
@@ -369,7 +381,9 @@ function _saveSetupSummaryToSheet_() {
     ['CHAT_ALERT_ON_OUTSIDE_US',     cfg.chatAlertOnOutsideUS     ? 'TRUE' : 'FALSE'],
     ['CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL', cfg.chatAlertOnImpossibleTravel ? 'TRUE' : 'FALSE'],
     ['CHAT_ALERT_ON_BURST',          cfg.chatAlertOnBurst         ? 'TRUE' : 'FALSE'],
-    ['CHAT_ALERT_SCHEDULED_ONLY',    cfg.chatAlertScheduledOnly   ? 'TRUE' : 'FALSE']
+    ['CHAT_ALERT_SCHEDULED_ONLY',    cfg.chatAlertScheduledOnly   ? 'TRUE' : 'FALSE'],
+    ['LICENSE_TIER',                 cfg.licenseTier  || '(none)'],
+    ['LICENSE_DOMAIN',               cfg.licenseDomain || '(none)']
   ];
   const existingRows = Math.max(sh.getMaxRows() - 7, 1);
   sh.getRange(8, 1, existingRows, 2).clearContent();
@@ -411,6 +425,16 @@ function trimSetupSheet(keepEntries) {
 }
 
 function showLiveMap() {
+  const state = _getLicenseState_();
+  if (state.phase === 'mapLocked' || state.phase === 'shutdown') {
+    SpreadsheetApp.getUi().alert(
+      'Live Map Unavailable',
+      'Your license expired on ' + state.expiresOn + '. The Live Map is disabled until a renewed ' +
+      'license is activated.\n\nVisit workspacewatchdog.com to renew, or open the Setup Wizard to enter a new token.',
+      SpreadsheetApp.getUi().ButtonSet.OK
+    );
+    return;
+  }
   const html = HtmlService.createHtmlOutputFromFile('LiveMap')
     .setTitle('Workspace Watchdog - Live Map')
     .setWidth(2000)
