@@ -283,6 +283,7 @@ function _refreshSuspicious_(triggerName) {
         if (miles >= CONFIG.IMPOSSIBLE_MIN_MILES && mph >= CONFIG.IMPOSSIBLE_MPH) {
           if (_isWhitelisted_(email, a.ip) || _isWhitelisted_(email, b.ip)) continue;
           if (a.ip && b.ip && a.ip === b.ip) continue;
+          if (CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL && (_isMobileIsp_(a.isp) || _isMobileIsp_(b.isp))) continue;
           const details = 'dt=' + dtH.toFixed(2) + 'h, dist=' + miles.toFixed(0) + 'mi, speed≈' + mph.toFixed(0) + ' mph';
           const tail = _suspTail_(b.ts, 'Impossible Travel');
           const travelAlertKey = String(a.key) + '_' + String(b.key || '');
