@@ -6,6 +6,10 @@
 
 function getLiveMapData(opts) {
   _applyRuntimeConfig_();
+  const licensePhase = _getLicenseState_().phase;
+  if (licensePhase === 'mapLocked' || licensePhase === 'shutdown') {
+    return { rows: [], total: 0, licenseLocked: true };
+  }
   opts = opts || {};
   const maxRows   = Number(opts.maxRows)  || 2000;
   const eventType = opts.eventType        || 'all';
