@@ -389,3 +389,56 @@ function clearIPReputationCache() {
     'Workspace Watchdog', 5
   );
 }
+
+// ===== Mobile ISP picker (Settings UI) ========================================
+
+// Common US mobile carrier ISP/org names, merged into the picker's visible list
+// so they're easy to find and select even before they've appeared in GeoCache
+// (e.g. brand-new install). This list only affects which ISP names are SHOWN —
+// it does NOT pre-check any box. Every install starts with nothing selected;
+// the admin opts in per-ISP based on what they see causing false positives in
+// their own Suspicious sheet.
+const DEFAULT_MOBILE_ISPS = [
+  'AT&T Enterprises, LLC',
+  'Verizon Business',
+  'T-Mobile USA, Inc.',
+  'Cellco Partnership',
+  'Sprint PCS',
+  'Sprint Spectrum',
+  'Cricket Wireless',
+  'Boost Mobile',
+  'US Cellular',
+  'MetroPCS'
+];
+
+function getKnownIsps() {
+  _applyRuntimeConfig_();
+  const ss   = SpreadsheetApp.getActive();
+  const sh   = ss.getSheetByName(CONFIG.GEOCACHE);
+  const saved = String(CONFIG.MOBILE_ISP_LIST || '');
+  const savedNames = saved.split(',').map(s => s.trim()).filter(Boolean);
+
+  const counts = {};
+  if (sh && sh.getLastRow() > 1) {
+    const lastRow = sh.getLastRow();
+    const isps = sh.getRange(2, 5, lastRow - 1, 1).getValues(); // col E = isp
+    isps.forEach(r => {
+      const v = String(r[0] || '').trim();
+      if (!v) return;
+      counts[v] = (counts[v] || 0) + 1;
+    });
+  }
+
+  // Merge in the seed carriers and anything already saved, even if GeoCache is
+  // currently empty (brand-new install) or has since been cleared. This keeps
+  // the list populated on day one and never "loses" a prior admin selection
+  // just because the underlying cache was rebuilt. Checked state is handled
+  // entirely client-side from the saved CSV — see renderMobileIspPicker() in
+  // Settings.html — so nothing here causes a box to be pre-checked.
+  DEFAULT_MOBILE_ISPS.concat(savedNames).forEach(name => {
+    if (!(name in counts)) counts[name] = 0;
+  });
+
+  const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  return { isps: sorted, counts: counts, current: saved };
+}
