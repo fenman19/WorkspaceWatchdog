@@ -5,7 +5,27 @@
 
 function scheduledSync() {
   _applyRuntimeConfig_();
+
+  var state = _getLicenseState_();
+  if (state.phase === 'shutdown') {
+    _logShutdownSkipOncePerDay_(state);
+    return;
+  }
+
   _syncCore('scheduledSync');
+}
+
+// Logs a single diagnostics row per day while sync is skipped due to license
+// shutdown, instead of one row per trigger firing (which could be every few
+// minutes for weeks on an unattended sheet).
+function _logShutdownSkipOncePerDay_(state) {
+  var p = PropertiesService.getScriptProperties();
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var lastLogged = p.getProperty('WW_SYNC_SKIP_LOGGED');
+  if (lastLogged === today) return;
+  p.setProperty('WW_SYNC_SKIP_LOGGED', today);
+  _logDiagnostics('scheduledSync', new Date(), new Date(), 0, 0,
+    'Sync skipped — license expired since ' + state.expiresOn + ', grace period ended.', {});
 }
 
 function _syncCore(triggerName) {
