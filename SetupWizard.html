@@ -42,11 +42,19 @@
     .step-badge { display: inline-flex; align-items: center; justify-content: center; background: #1a73e8; color: white; border-radius: 999px; width: 20px; height: 20px; font-size: 11px; font-weight: 700; margin-right: 8px; flex-shrink: 0; margin-top: 2px; }
     .step-row { display: flex; align-items: flex-start; margin-bottom: 12px; }
     .step-row > div { flex: 1; }
+
+    /* License token input row */
+    .license-input-row { display: flex; gap: 8px; margin-top: 6px; }
+    .license-input-row input { flex: 1; font-family: monospace; letter-spacing: 1px; }
+    .license-badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; margin-left: 8px; text-transform: uppercase; letter-spacing: .05em; }
+    .badge-trial    { background: #fef3c7; color: #92400e; }
+    .badge-paid     { background: #d1fae5; color: #065f46; }
+    .badge-lifetime { background: #ede9fe; color: #4c1d95; }
   </style>
 </head>
 <body>
   <h2>Workspace Watchdog</h2>
-  <div class="version">v2.9.0</div>
+  <div class="version">v3.5.1</div>
   <div class="muted">Setup wizard &middot; Login monitor for Google Workspace</div>
 
   <div class="nav-bar">
@@ -59,10 +67,31 @@
     <div id="installStatusText" style="color:#9aa0a6;">Checking...</div>
   </div>
 
-  <!-- Step 1: API Keys -->
+  <!-- Step 1: License -->
   <div class="card">
     <div class="card-title collapsible" onclick="toggleCard(this)">
-      Step 1 &mdash; API Keys <span class="caret">&#9660;</span>
+      Step 1 &mdash; License Activation <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:300px;">
+      <div style="margin-top:10px;">
+        <div class="hint" style="margin-bottom:10px;">
+          Enter your license token from your welcome email. Don't have one?
+          <a href="https://workspacewatchdog.com" target="_blank" style="color:#1a73e8;">Start a free trial</a>.
+        </div>
+        <label for="licenseToken">License Token</label>
+        <div class="license-input-row">
+          <input id="licenseToken" type="text" placeholder="wwt-xxxxxxxxxxxx" autocomplete="off" spellcheck="false">
+          <button class="primary" onclick="activateLicense()">Activate</button>
+        </div>
+        <div id="licenseStatus" class="status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: API Keys -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Step 2 &mdash; API Keys <span class="caret">&#9660;</span>
     </div>
     <div class="card-body" style="max-height:400px;">
       <div style="margin-top:10px;">
@@ -86,10 +115,10 @@
     </div>
   </div>
 
-  <!-- Step 2: Map Access -->
+  <!-- Step 3: Map Access -->
   <div class="card">
     <div class="card-title collapsible" onclick="toggleCard(this)">
-      Step 2 &mdash; Full Screen Map Access <span class="caret">&#9660;</span>
+      Step 3 &mdash; Full Screen Map Access <span class="caret">&#9660;</span>
     </div>
     <div class="card-body" style="max-height:400px;">
       <div style="margin-top:10px;">
@@ -110,10 +139,10 @@
     </div>
   </div>
 
-  <!-- Step 3: Install -->
+  <!-- Step 4: Install -->
   <div class="card">
     <div class="card-title collapsible" onclick="toggleCard(this)">
-      Step 3 &mdash; Install / Repair <span class="caret">&#9660;</span>
+      Step 4 &mdash; Install / Repair <span class="caret">&#9660;</span>
     </div>
     <div class="card-body" style="max-height:700px;">
       <div style="margin-top:10px;">
@@ -163,23 +192,67 @@
       el.textContent = msg || '';
       el.className = 'status ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
     }
+
+    function setLicenseStatus(msg, ok, badge) {
+      var el = document.getElementById('licenseStatus');
+      var badgeHtml = badge ? ' <span class="license-badge badge-' + badge + '">' + badge + '</span>' : '';
+      el.innerHTML = (msg || '') + badgeHtml;
+      el.className = 'status ' + (ok === true ? 'ok' : ok === false ? 'bad' : '');
+    }
+
     function openSettings() { google.script.run.showSettingsPanel(); }
     function openUpdates()  { google.script.run.showUpdatesPanel();  }
+
     function toggleCard(t) {
       var b = t.nextElementSibling, c = t.classList.contains('collapsed');
       t.classList.toggle('collapsed', !c); b.classList.toggle('collapsed', !c);
     }
+
+    function activateLicense() {
+      var token = document.getElementById('licenseToken').value.trim();
+      if (!token) { setLicenseStatus('Please enter your license token.', false); return; }
+      setLicenseStatus('Validating...', null);
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.ok) {
+            setLicenseStatus('License activated \u2713', true, res.tier);
+          } else {
+            var msgs = {
+              'token_not_found': 'Token not found. Check your welcome email.',
+              'token_expired':   'This token has expired. Visit workspacewatchdog.com to renew.',
+              'token_revoked':   'This token has been revoked. Contact support.',
+              'domain_mismatch': 'This token is registered to a different domain.',
+              'missing_token':   'No token entered.',
+            };
+            setLicenseStatus(msgs[res.error] || ('Activation failed: ' + (res.error || 'unknown error')), false);
+          }
+        })
+        .withFailureHandler(function(e) {
+          setLicenseStatus('Error: ' + (e.message || String(e)), false);
+        })
+        .validateAndStoreLicense(token);
+    }
+
     function loadConfig() {
       google.script.run
         .withSuccessHandler(fillForm)
         .withFailureHandler(function(e) { setStatus(e.message || String(e), false); })
         .getWizardConfig();
     }
+
     function fillForm(cfg) {
       document.getElementById('ipinfoToken').value               = cfg.ipinfoToken || '';
       document.getElementById('abuseIpDbKey').value              = cfg.abuseIpDbKey || '';
       document.getElementById('fastInstallLookbackMinutes').value = cfg.fastInstallLookbackMinutes || 120;
+
+      // Load existing license status if already activated
+      if (cfg.licenseToken) {
+        document.getElementById('licenseToken').value = cfg.licenseToken;
+        setLicenseStatus('License active \u2713', true, cfg.licenseTier || null);
+      }
+
       loadMapUsers();
+
       var box = document.getElementById('installStatusText');
       if (cfg.installed) {
         box.innerHTML = '<span style="color:#188038;font-weight:700;">&#10003; Installed</span>' +
@@ -187,9 +260,10 @@
           ' &nbsp;&middot;&nbsp; Last install: ' + (cfg.installTimestamp || 'unknown');
       } else {
         box.innerHTML = '<span style="color:#f9ab00;font-weight:700;">&#9888; Not yet installed</span>' +
-          ' &nbsp;&mdash;&nbsp; Complete Steps 1-2 then click Install.';
+          ' &nbsp;&mdash;&nbsp; Complete Steps 1-3 then click Install.';
       }
     }
+
     function loadMapUsers() {
       google.script.run
         .withSuccessHandler(function(raw) {
@@ -199,6 +273,7 @@
         .withFailureHandler(function() {})
         .getMapAllowedUsers();
     }
+
     function saveMapUsers() {
       var status = document.getElementById('mapUserStatus');
       status.textContent = 'Saving...'; status.className = 'status';
@@ -207,6 +282,7 @@
         .withFailureHandler(function(e)   { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
         .saveMapAllowedUsers(document.getElementById('mapAllowedUsers').value);
     }
+
     function showMapUrl() {
       var status = document.getElementById('mapUserStatus');
       google.script.run
@@ -217,8 +293,10 @@
         .withFailureHandler(function(e) { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
         .getMapFullscreenUrl();
     }
+
     function testReports()   { setStatus('Testing Reports API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testAdminAccess(); }
     function testDirectory() { setStatus('Testing Directory API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testDirectoryAccess(); }
+
     function installNow() {
       setStatus('Installing... this may take a minute on large domains.');
       google.script.run
@@ -226,6 +304,7 @@
         .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
         .installFromWizard(getInstallForm());
     }
+
     function fastInstallNow() {
       setStatus('Fast install — ' + (document.getElementById('fastInstallLookbackMinutes').value||120) + ' min seed window...');
       google.script.run
@@ -233,11 +312,13 @@
         .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
         .installFromWizardFast(getInstallForm());
     }
+
     function bulkLoadOUs()  { setStatus('Bulk-loading all OUs...'); google.script.run.withSuccessHandler(function(){setStatus('Done.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).bulkLoadAllOUsMenu(); }
     function warmupNow()    { setStatus('Running cache warmup...'); google.script.run.withSuccessHandler(function(){setStatus('Cache warmup complete.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).cacheWarmup(); }
     function fillBlankGeo() { setStatus('Filling blank geo...'); google.script.run.withSuccessHandler(function(){setStatus('Done.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).fillBlankGeoInMain(); }
     function resetState()   { setStatus('Resetting...'); google.script.run.withSuccessHandler(function(){setStatus('Reset.',true);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).resetInstallState(); }
     function trimSetup()    { setStatus('Trimming...'); google.script.run.withSuccessHandler(function(r){setStatus(r&&r.message?r.message:'Done.',true);}).withFailureHandler(function(e){setStatus('Error: '+(e.message||String(e)),false);}).trimSetupSheet(1); }
+
     function runBackfill() {
       var days = parseInt(document.getElementById('backfillDays').value)||1;
       setStatus('Backfilling ' + days + ' day(s)...');
@@ -246,6 +327,7 @@
         .withFailureHandler(function(e)   { setStatus('Backfill error: ' + (e.message||String(e)), false); })
         .backfillDays(days);
     }
+
     function getInstallForm() {
       return {
         ipinfoToken:                document.getElementById('ipinfoToken').value,
@@ -253,6 +335,7 @@
         fastInstallLookbackMinutes: document.getElementById('fastInstallLookbackMinutes').value
       };
     }
+
     loadConfig();
   </script>
 </body>
