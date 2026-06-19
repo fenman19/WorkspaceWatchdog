@@ -58,6 +58,7 @@ function _sendAlertOnce_(cacheKey, text) {
 }
 
 function _alertsEnabled_(triggerName) {
+  if (_getLicenseState_().phase === 'shutdown') return false;
   if (!PropertiesService.getScriptProperties().getProperty('CHAT_WEBHOOK_URL')) return false;
   if (CONFIG.CHAT_ALERT_SCHEDULED_ONLY && triggerName !== 'scheduledSync') return false;
   return true;
