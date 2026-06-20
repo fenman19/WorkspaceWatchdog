@@ -152,6 +152,14 @@ function _getLicenseState_() {
   return { tier: tier, phase: 'mapLocked', daysUntil: daysUntil, expiresOn: expires };
 }
 
+// Public wrapper around _getLicenseState_ for client-side calls (e.g. the
+// LiveMap expiry banner). Only exposes the fields the client needs — never
+// the raw token.
+function getLicenseStateForClient() {
+  var state = _getLicenseState_();
+  return { phase: state.phase, daysUntil: state.daysUntil, expiresOn: state.expiresOn };
+}
+
 // Re-validates against the license server at most once per ~20 hours (so it's
 // effectively daily regardless of how often onOpen/sync fire) and refreshes
 // the locally stored expiry/tier/status. Safe to call often — it no-ops most

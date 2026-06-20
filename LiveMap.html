@@ -177,6 +177,35 @@
     #map { flex: 1; }
     #globe-container { position: absolute; inset: 0; display: none; z-index: 5; }
 
+    /* ── License expiry banner ────────────────────────────────────────────
+       Sibling of #map / #globe-container inside #main (position:relative),
+       same pattern as #globeAlertPanel below — keeps it above both modes. */
+    #licenseBanner {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      padding: 8px 16px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px; font-weight: 700; letter-spacing: .04em;
+      align-items: center; justify-content: center; gap: 12px;
+      text-align: center;
+      border-bottom: 1px solid;
+    }
+    #licenseBanner.visible { display: flex; }
+    #licenseBanner.warn {
+      background: rgba(255,170,0,0.15); color: var(--yellow); border-color: var(--yellow);
+    }
+    #licenseBanner.expired {
+      background: rgba(255,59,92,0.18); color: var(--red); border-color: var(--red);
+      box-shadow: var(--glow-red);
+    }
+    #licenseBanner .lb-close {
+      background: none; border: 1px solid currentColor; color: inherit;
+      border-radius: 4px; font-size: 11px; padding: 2px 8px; cursor: pointer;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
     /* ── Globe Suspicious Overlay Panel ─────────────────────────────────── */
     #globeAlertPanel {
       display: none;
@@ -653,6 +682,7 @@
 <!-- scorecards row removed -->
 
 <div id="main">
+  <div id="licenseBanner"></div>
   <div id="map"></div>
   <div id="globe-container"></div>
 
@@ -780,6 +810,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 }).addTo(map);
 arcLayer = L.layerGroup().addTo(map);
 
+// Check license phase immediately — don't wait on getLiveMapData()'s
+// licenseLocked flag, which only fires once the map is already disabled.
+checkLicenseBanner();
+
 // THEN load data and OUs after map is ready
 window.onload = function() {
   setTimeout(function() {
@@ -813,6 +847,67 @@ function dismissSplash() {
   setTimeout(function() {
     splash.style.display = 'none';
   }, 650);
+}
+
+// ── License expiry banner ─────────────────────────────────────────────────
+
+function checkLicenseBanner() {
+  google.script.run
+    .withSuccessHandler(renderLicenseBanner)
+    .withFailureHandler(function() {})
+    .getLicenseStateForClient();
+}
+
+function renderLicenseBanner(state) {
+  if (!state) return;
+  var el = document.getElementById('licenseBanner');
+  if (!el) return;
+
+  var dismissible = true;
+  var cls = 'warn';
+  var msg = '';
+
+  switch (state.phase) {
+    case 'warn15':
+    case 'warn7':
+      msg = '⚠ Your Workspace Watchdog license expires in ' + state.daysUntil +
+        ' day' + (state.daysUntil === 1 ? '' : 's') + ' (' + state.expiresOn + ').';
+      break;
+    case 'warn1':
+      msg = '⚠ Your Workspace Watchdog license expires ' +
+        (state.daysUntil === 0 ? 'today' : 'tomorrow') + ' (' + state.expiresOn + ').';
+      break;
+    case 'mapLocked':
+      dismissible = false;
+      cls = 'expired';
+      msg = '⚠ Your license expired on ' + state.expiresOn +
+        '. Renew now — the Live Map will be disabled once the grace period ends.';
+      break;
+    case 'shutdown':
+      dismissible = false;
+      cls = 'expired';
+      msg = '⚠ License expired — grace period has ended. Renew at workspacewatchdog.com to restore service.';
+      break;
+    default:
+      el.classList.remove('visible');
+      return;
+  }
+
+  // Dismissible banners stay dismissed for this phase/day until the phase advances
+  var dismissKey = 'ww_license_banner_dismissed_' + state.phase + '_' + state.expiresOn;
+  if (dismissible && sessionStorage.getItem(dismissKey)) {
+    el.classList.remove('visible');
+    return;
+  }
+
+  el.className = 'visible ' + cls;
+  el.innerHTML = '<span>' + msg + '</span>' +
+    (dismissible ? '<button class="lb-close" onclick="dismissLicenseBanner(\'' + dismissKey + '\')">Dismiss</button>' : '');
+}
+
+function dismissLicenseBanner(key) {
+  sessionStorage.setItem(key, '1');
+  document.getElementById('licenseBanner').classList.remove('visible');
 }
 
 // ── Update Notifications ─────────────────────────────────────────────────────
