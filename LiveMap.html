@@ -131,21 +131,25 @@
     .view-opt .view-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
     .view-opt.active .view-dot { background: var(--accent); box-shadow: var(--glow-blue); }
     .tb-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
-    /* #tbLeft / #tbRight size to their own content (flex-shrink only as a
-       last resort) instead of being forced into equal halves — forcing equal
-       halves just moved the collision into a clip (texture dropdown getting
-       cut to "Nigh"). The flanking .tb-spacer elements absorb the remaining
-       width equally, which is what actually keeps #tbScoreGroup centered on
-       the container without it ever overlapping either side.
+    /* #tbLeft / #tbRight are kept at equal width by syncToolbarHalves() (JS),
+       which measures each side's real content width and applies the larger
+       one as a shared flex-basis to both. That's what keeps #tbScoreGroup
+       genuinely centered on the toolbar — fixed equal-halves alone clipped
+       the wider side's content (e.g. the texture dropdown cut to "Nigh"),
+       and flex-grow spacers alone centered between the two sides instead of
+       on the container, drifting off-center whenever one side had more
+       controls than the other (e.g. globe mode's extra rotate/texture
+       controls on the left). overflow:hidden remains only as a last-resort
+       safety net for windows too narrow to fit both sides at their natural
+       width even when synced.
        Previously #tbScoreGroup was absolutely centered on #toolbar itself,
        which collided with the left controls once globe mode added the
        rotate/texture dropdowns (worse on narrower/lower-resolution screens). */
     #tbLeft, #tbRight {
       display: flex; align-items: center; gap: 6px;
-      flex: 0 1 auto; min-width: 0; overflow: hidden;
+      flex: 1 1 auto; min-width: 0; overflow: hidden;
     }
     #tbRight { justify-content: flex-end; }
-    .tb-spacer { flex: 1 1 auto; min-width: 0; }
     #tbScoreGroup {
       display: flex; align-items: center; height: 100%;
       flex-shrink: 0;
@@ -612,9 +616,7 @@
   </div>
 </div>
 
-  <div class="tb-spacer"></div>
-
-  <!-- Centered scorecards — flanking .tb-spacer elements absorb leftover width equally, keeping this centered on the toolbar without ever overlapping #tbLeft/#tbRight -->
+  <!-- Centered scorecards — kept centered by syncToolbarHalves() (JS), which equalizes #tbLeft/#tbRight widths so this sits exactly in the middle -->
   <div id="tbScoreGroup">
     <div class="tb-sc">
       <span class="tb-sc-label">Events</span>
@@ -645,8 +647,6 @@
       <span class="tb-sc-val sc-blue" id="scIPs">-</span>
     </div>
   </div>
-
-  <div class="tb-spacer"></div>
 
   <div id="tbRight">
   <!-- Auto refresh controls -->
@@ -833,8 +833,26 @@ arcLayer = L.layerGroup().addTo(map);
 // licenseLocked flag, which only fires once the map is already disabled.
 checkLicenseBanner();
 
+// Keeps #tbScoreGroup genuinely centered on the toolbar by measuring each
+// side's real content width and applying the larger one as a shared
+// flex-basis to both — equal-width sides is what makes the middle element
+// sit on the true center, regardless of which side currently has more
+// controls (e.g. globe mode's rotate/texture dropdowns on the left).
+function syncToolbarHalves() {
+  var left = document.getElementById('tbLeft');
+  var right = document.getElementById('tbRight');
+  if (!left || !right) return;
+  left.style.flexBasis = 'auto';
+  right.style.flexBasis = 'auto';
+  var w = Math.max(left.scrollWidth, right.scrollWidth);
+  left.style.flexBasis = w + 'px';
+  right.style.flexBasis = w + 'px';
+}
+window.addEventListener('resize', syncToolbarHalves);
+
 // THEN load data and OUs after map is ready
 window.onload = function() {
+  syncToolbarHalves();
   setTimeout(function() {
     map.invalidateSize();
     loadOUs();
@@ -2763,6 +2781,7 @@ function toggleGlobeView() {
   // Toolbar controls
   document.getElementById('rotateWrap').style.display  = on ? 'flex' : 'none';
   document.getElementById('textureWrap').style.display = on ? 'flex' : 'none';
+  syncToolbarHalves(); // left side just gained/lost the rotate/texture controls
 
   if (on) {
     // ── Entering globe view ──────────────────────────────────────────────
