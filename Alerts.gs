@@ -326,9 +326,22 @@ function removeFromWhitelist(entry) {
   return { ok: true, remaining: cleaned.length };
 }
 
+// Accepts only a plain email address or a plain IPv4/IPv6 address — anything
+// else is rejected before it ever reaches storage or the Live Map's
+// whitelist manager UI.
+function _isValidWhitelistEntry_(entry) {
+  const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+  const IPV4_RE  = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+  const IPV6_RE  = /^[0-9A-Fa-f:]+:[0-9A-Fa-f:]+$/;
+  return EMAIL_RE.test(entry) || IPV4_RE.test(entry) || IPV6_RE.test(entry);
+}
+
 function addToWhitelistFromMap(entry) {
   if (!entry || !String(entry).trim()) return { ok: false, message: 'Empty entry.' };
   entry = String(entry).trim().toLowerCase();
+  if (!_isValidWhitelistEntry_(entry)) {
+    return { ok: false, message: entry + ' is not a valid email address or IP address.' };
+  }
   const p   = PropertiesService.getScriptProperties();
   const raw = p.getProperty('SUSPICIOUS_WHITELIST') || '';
   const existing = raw.replace(/,/g, '\n').split('\n')
