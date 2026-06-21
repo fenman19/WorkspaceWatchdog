@@ -131,16 +131,21 @@
     .view-opt .view-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
     .view-opt.active .view-dot { background: var(--accent); box-shadow: var(--glow-blue); }
     .tb-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
-    /* #tbLeft / #tbRight share the remaining toolbar width equally so
-       #tbScoreGroup stays centered between them without ever overlapping —
-       previously #tbScoreGroup was absolutely centered on #toolbar itself,
+    /* #tbLeft / #tbRight size to their own content (flex-shrink only as a
+       last resort) instead of being forced into equal halves — forcing equal
+       halves just moved the collision into a clip (texture dropdown getting
+       cut to "Nigh"). The flanking .tb-spacer elements absorb the remaining
+       width equally, which is what actually keeps #tbScoreGroup centered on
+       the container without it ever overlapping either side.
+       Previously #tbScoreGroup was absolutely centered on #toolbar itself,
        which collided with the left controls once globe mode added the
        rotate/texture dropdowns (worse on narrower/lower-resolution screens). */
     #tbLeft, #tbRight {
       display: flex; align-items: center; gap: 6px;
-      flex: 1 1 0; min-width: 0; overflow: hidden;
+      flex: 0 1 auto; min-width: 0; overflow: hidden;
     }
     #tbRight { justify-content: flex-end; }
+    .tb-spacer { flex: 1 1 auto; min-width: 0; }
     #tbScoreGroup {
       display: flex; align-items: center; height: 100%;
       flex-shrink: 0;
@@ -607,7 +612,9 @@
   </div>
 </div>
 
-  <!-- Centered scorecards — flex-shrink:0 between #tbLeft/#tbRight (both flex:1) keeps this visually centered without overlapping either side -->
+  <div class="tb-spacer"></div>
+
+  <!-- Centered scorecards — flanking .tb-spacer elements absorb leftover width equally, keeping this centered on the toolbar without ever overlapping #tbLeft/#tbRight -->
   <div id="tbScoreGroup">
     <div class="tb-sc">
       <span class="tb-sc-label">Events</span>
@@ -638,6 +645,8 @@
       <span class="tb-sc-val sc-blue" id="scIPs">-</span>
     </div>
   </div>
+
+  <div class="tb-spacer"></div>
 
   <div id="tbRight">
   <!-- Auto refresh controls -->
