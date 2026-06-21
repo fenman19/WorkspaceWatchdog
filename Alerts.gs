@@ -322,6 +322,7 @@ function getWhitelist() {
 }
 
 function removeFromWhitelist(entry) {
+  _requireAllowedUser_();
   if (!entry) return { ok: false };
   const p   = PropertiesService.getScriptProperties();
   const raw = p.getProperty('SUSPICIOUS_WHITELIST') || '';
@@ -342,6 +343,7 @@ function _isValidWhitelistEntry_(entry) {
 }
 
 function addToWhitelistFromMap(entry) {
+  _requireAllowedUser_();
   if (!entry || !String(entry).trim()) return { ok: false, message: 'Empty entry.' };
   entry = String(entry).trim().toLowerCase();
   if (!_isValidWhitelistEntry_(entry)) {

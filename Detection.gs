@@ -355,12 +355,14 @@ function getUserRiskScores() {
 }
 
 function getUserRiskScore(email) {
+  _requireAllowedUser_();
   if (!email) return 0;
   const scores = getUserRiskScores();
   return scores[String(email).toLowerCase()] || 0;
 }
 
 function getUserRiskTrend(email) {
+  _requireAllowedUser_();
   if (!email) return [];
   email = String(email).toLowerCase();
   const ss      = SpreadsheetApp.getActive();

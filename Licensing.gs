@@ -156,6 +156,7 @@ function _getLicenseState_() {
 // LiveMap expiry banner). Only exposes the fields the client needs — never
 // the raw token.
 function getLicenseStateForClient() {
+  _requireAllowedUser_();
   var state = _getLicenseState_();
   return { phase: state.phase, daysUntil: state.daysUntil, expiresOn: state.expiresOn };
 }
@@ -267,6 +268,7 @@ function checkForUpdates() {
 }
 
 function getVersionInfo() {
+  _requireAllowedUser_();
   try {
     const resp = UrlFetchApp.fetch(UPDATER.VERSION_URL, { muteHttpExceptions: true, deadline: 5 });
     if (resp.getResponseCode() === 200) return JSON.parse(resp.getContentText());
