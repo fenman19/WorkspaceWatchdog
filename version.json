@@ -1,11 +1,10 @@
 {
-  "version": "3.6.0",
-  "released": "2026-06-19",
+  "version": "3.6.1",
+  "released": "2026-06-20",
   "changelog": [
-    "Added per-ISP picker in Settings to filter mobile carrier IPs from Impossible Travel detection",
-    "Built full license enforcement system with phase-based warnings and shutdown",
-    "Added warning toasts at 15, 7, and 1 days before license expiry",
-    "Map and sync now lock/stop after grace period expires (7 days trial, 30 days paid, never for lifetime)",
-    "License re-validates against server approximately every 20 hours"
+    "Added license expiry banner directly to the Live Map for users who keep the map open as an ambient dashboard",
+    "Banner shows at 15, 7, and 1 days before license expiration (dismissible)",
+    "Banner becomes persistent and non-dismissible once the license expires, through the 7-day grace window",
+    "Live Map now checks license phase in-page on load, instead of relying solely on the licenseLocked flag"
   ]
 }
