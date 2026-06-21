@@ -1,10 +1,9 @@
 {
-  "version": "3.6.1",
+  "version": "3.6.2",
   "released": "2026-06-20",
   "changelog": [
-    "Added license expiry banner directly to the Live Map for users who keep the map open as an ambient dashboard",
-    "Banner shows at 15, 7, and 1 days before license expiration (dismissible)",
-    "Banner becomes persistent and non-dismissible once the license expires, through the 7-day grace window",
-    "Live Map now checks license phase in-page on load, instead of relying solely on the licenseLocked flag"
+    "Fixed stored XSS vulnerability in the Suspicious Event Whitelist, affecting both the Live Map's Add button and the Settings textarea editor",
+    "Added per-call authorization checks so removing a user from the allowed list takes effect immediately, instead of only on their next page load",
+    "IPinfo token and license key are no longer sent to the browser in plaintext — Settings and Setup Wizard now show a Set/Not Set indicator instead"
   ]
 }
