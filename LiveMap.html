@@ -131,10 +131,19 @@
     .view-opt .view-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
     .view-opt.active .view-dot { background: var(--accent); box-shadow: var(--glow-blue); }
     .tb-sep { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+    /* #tbLeft / #tbRight share the remaining toolbar width equally so
+       #tbScoreGroup stays centered between them without ever overlapping —
+       previously #tbScoreGroup was absolutely centered on #toolbar itself,
+       which collided with the left controls once globe mode added the
+       rotate/texture dropdowns (worse on narrower/lower-resolution screens). */
+    #tbLeft, #tbRight {
+      display: flex; align-items: center; gap: 6px;
+      flex: 1 1 0; min-width: 0; overflow: hidden;
+    }
+    #tbRight { justify-content: flex-end; }
     #tbScoreGroup {
-      position: absolute; left: 50%; transform: translateX(-50%);
       display: flex; align-items: center; height: 100%;
-      pointer-events: auto; z-index: 10;
+      flex-shrink: 0;
       background: linear-gradient(90deg, transparent 0%, #060a14f2 8%, #060a14f2 92%, transparent 100%);
     }
     .tb-sc { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 10px; border-left: 1px solid var(--border); min-width: 52px; height: 100%; }
@@ -544,6 +553,7 @@
 
 <div id="toolbar">
 
+<div id="tbLeft">
   <!-- View mode dropdown -->
   <div id="viewDropWrap">
     <button id="viewDropBtn" onclick="toggleViewDrop()">
@@ -595,8 +605,9 @@
       <option value="black">⬛ Pure Black</option>
     </select>
   </div>
+</div>
 
-  <!-- Centered scorecards — absolutely positioned so they stay centered regardless of controls on either side -->
+  <!-- Centered scorecards — flex-shrink:0 between #tbLeft/#tbRight (both flex:1) keeps this visually centered without overlapping either side -->
   <div id="tbScoreGroup">
     <div class="tb-sc">
       <span class="tb-sc-label">Events</span>
@@ -628,9 +639,7 @@
     </div>
   </div>
 
-  <!-- Spacer pushes right-side controls to the right -->
-  <div style="flex:1;"></div>
-
+  <div id="tbRight">
   <!-- Auto refresh controls -->
   <label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer;font-family:'Share Tech Mono',monospace;color:var(--text2);letter-spacing:.06em;">
     <input type="checkbox" id="chkAuto" onchange="toggleAuto()" checked> AUTO
@@ -651,6 +660,7 @@
 
   <!-- Gear — opens filter drawer -->
   <button id="btnGear" onclick="toggleFilterDrawer()" title="Filters &amp; Tools">&#9881;</button>
+  </div>
 
 </div>
 
