@@ -202,7 +202,7 @@ function getWizardConfig() {
     cacheWarmupBatchIp: CONFIG.CACHE_WARMUP_BATCH_IP,
     cacheWarmupBatchUser: CONFIG.CACHE_WARMUP_BATCH_USER,
     cacheWarmupIntervalMinutes: CONFIG.CACHE_WARMUP_INTERVAL_MINUTES,
-    ipinfoToken: p.getProperty('IPINFO_TOKEN') || '',
+    ipinfoTokenSet: !!p.getProperty('IPINFO_TOKEN'),
     monitorOUs: CONFIG.MONITOR_OUS || '',
     bulkOuLoad: CONFIG.BULK_OU_LOAD !== false,
     chatWebhookSet: !!(PropertiesService.getScriptProperties().getProperty('CHAT_WEBHOOK_URL')),
@@ -227,7 +227,7 @@ function getWizardConfig() {
     installVersion: p.getProperty('INSTALL_VERSION') || '',
     installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || '',
     // License
-    licenseToken:  p.getProperty('WW_LICENSE_KEY')    || '',
+    licenseTokenSet: !!p.getProperty('WW_LICENSE_KEY'),
     licenseTier:   p.getProperty('WW_LICENSE_TIER')   || '',
     licenseDomain: p.getProperty('WW_LICENSE_DOMAIN') || '',
     licenseExpires: p.getProperty('WW_LICENSE_EXPIRES') || '',
@@ -260,7 +260,6 @@ function saveWizardConfig(form) {
     CACHE_WARMUP_BATCH_IP: cleanNum(form.cacheWarmupBatchIp, 10),
     CACHE_WARMUP_BATCH_USER: cleanNum(form.cacheWarmupBatchUser, 10),
     CACHE_WARMUP_INTERVAL_MINUTES: cleanNum(form.cacheWarmupIntervalMinutes, 5),
-    IPINFO_TOKEN:   String(form.ipinfoToken || ''),
     MONITOR_OUS:    String(form.monitorOUs   || ''),
     BULK_OU_LOAD:   cleanBool(form.bulkOuLoad),
     CHAT_ALERT_DEDUPE_HOURS:         cleanNum(form.chatAlertDedupeHours, 12),
@@ -283,6 +282,9 @@ function saveWizardConfig(form) {
   });
   if (form.chatWebhookUrl && form.chatWebhookUrl.trim()) {
     PropertiesService.getScriptProperties().setProperty('CHAT_WEBHOOK_URL', form.chatWebhookUrl.trim());
+  }
+  if (form.ipinfoToken && form.ipinfoToken.trim()) {
+    PropertiesService.getScriptProperties().setProperty('IPINFO_TOKEN', form.ipinfoToken.trim());
   }
   _applyRuntimeConfig_();
   _ensureSetupSheet_();
@@ -373,7 +375,7 @@ function _saveSetupSummaryToSheet_() {
     ['CACHE_WARMUP_BATCH_IP', cfg.cacheWarmupBatchIp],
     ['CACHE_WARMUP_BATCH_USER', cfg.cacheWarmupBatchUser],
     ['CACHE_WARMUP_INTERVAL_MINUTES', cfg.cacheWarmupIntervalMinutes],
-    ['IPINFO_TOKEN_SET',  cfg.ipinfoToken  ? 'Yes' : 'No'],
+    ['IPINFO_TOKEN_SET',  cfg.ipinfoTokenSet  ? 'Yes' : 'No'],
     ['MONITOR_OUS',                  cfg.monitorOUs   || '(all)'],
     ['BULK_OU_LOAD',                 cfg.bulkOuLoad   ? 'TRUE' : 'FALSE'],
     ['CHAT_WEBHOOK_SET',             cfg.chatWebhookSet ? 'Yes' : 'No'],

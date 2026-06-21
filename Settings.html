@@ -207,6 +207,9 @@
 
         <label for="ipinfoToken">IPInfo token (optional)</label>
         <input id="ipinfoToken" type="text" value="" placeholder="token for ipinfo.io">
+        <div class="hint" style="grid-column:1/-1;margin-top:-4px;">
+          <span id="ipinfoTokenStatus" style="font-weight:600;"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -595,7 +598,19 @@
       document.getElementById('impossibleMinMiles').value         = cfg.impossibleMinMiles         || 50;
       document.getElementById('impossibleMph').value              = cfg.impossibleMph              || 500;
       document.getElementById('ignoreMobileImpossibleTravel').checked = (cfg.ignoreMobileImpossibleTravel !== false);
-      document.getElementById('ipinfoToken').value                = cfg.ipinfoToken                || '';
+      // IPInfo token status indicator — never pre-fill the actual secret
+      var ipinfoField = document.getElementById('ipinfoToken');
+      var its         = document.getElementById('ipinfoTokenStatus');
+      ipinfoField.value = '';
+      if (cfg.ipinfoTokenSet) {
+        its.textContent = ' Token configured';
+        its.style.color = '#188038';
+        ipinfoField.placeholder = '(token already configured — enter new token to replace)';
+      } else {
+        its.textContent = ' Not set';
+        its.style.color = '#d93025';
+        ipinfoField.placeholder = 'token for ipinfo.io';
+      }
       document.getElementById('trimAfterSync').checked            = !!cfg.trimAfterSync;
       document.getElementById('activeIncludeToken').checked       = !!cfg.activeIncludeToken;
       document.getElementById('bulkOuLoad').checked               = cfg.bulkOuLoad !== false;
@@ -756,10 +771,15 @@
       document.getElementById('whitelistStatus').textContent = 'Saving...';
       google.script.run
         .withSuccessHandler(function(res) {
-          document.getElementById('whitelistStatus').textContent =
-            '&#10003; Saved — ' + res.emailCount + ' email' + (res.emailCount !== 1 ? 's' : '') +
+          var msg = 'Saved — ' + res.emailCount + ' email' + (res.emailCount !== 1 ? 's' : '') +
             ', ' + res.ipCount + ' IP' + (res.ipCount !== 1 ? 's' : '') + ' suppressed.';
-          document.getElementById('whitelistStatus').style.color = '#188038';
+          if (res.rejected && res.rejected.length) {
+            msg += ' Rejected ' + res.rejected.length + ' invalid line' +
+              (res.rejected.length !== 1 ? 's' : '') + ': ' + res.rejected.join(', ');
+          }
+          document.getElementById('whitelistStatus').textContent = msg;
+          document.getElementById('whitelistStatus').style.color =
+            (res.rejected && res.rejected.length) ? '#d93025' : '#188038';
         })
         .withFailureHandler(function(err) {
           document.getElementById('whitelistStatus').textContent = 'Error: ' + (err.message || err);

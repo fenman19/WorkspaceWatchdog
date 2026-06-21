@@ -100,7 +100,9 @@
           <div>
             <label for="ipinfoToken">IPInfo Token <span style="font-weight:400;color:#5f6368;">(optional)</span></label>
             <input id="ipinfoToken" type="text" placeholder="token from ipinfo.io" style="margin-top:4px;">
-            <div class="hint">Free tier: 50k lookups/month. Leave blank to use ip-api.com fallback.</div>
+            <div class="hint">Free tier: 50k lookups/month. Leave blank to use ip-api.com fallback.
+              <span id="ipinfoTokenStatus" style="font-weight:600;"></span>
+            </div>
           </div>
         </div>
         <div class="step-row">
@@ -241,13 +243,27 @@
     }
 
     function fillForm(cfg) {
-      document.getElementById('ipinfoToken').value               = cfg.ipinfoToken || '';
+      // IPInfo token status indicator — never pre-fill the actual secret
+      var ipinfoField = document.getElementById('ipinfoToken');
+      var its         = document.getElementById('ipinfoTokenStatus');
+      ipinfoField.value = '';
+      if (cfg.ipinfoTokenSet) {
+        its.textContent = ' Token configured';
+        its.style.color = '#188038';
+        ipinfoField.placeholder = '(token already configured — enter new token to replace)';
+      } else {
+        its.textContent = ' Not set';
+        its.style.color = '#d93025';
+        ipinfoField.placeholder = 'token from ipinfo.io';
+      }
       document.getElementById('abuseIpDbKey').value              = cfg.abuseIpDbKey || '';
       document.getElementById('fastInstallLookbackMinutes').value = cfg.fastInstallLookbackMinutes || 120;
 
-      // Load existing license status if already activated
-      if (cfg.licenseToken) {
-        document.getElementById('licenseToken').value = cfg.licenseToken;
+      // Load existing license status if already activated \u2014 never pre-fill
+      // the actual token, just indicate it's set and let the field stay
+      // empty/editable for entering a replacement.
+      if (cfg.licenseTokenSet) {
+        document.getElementById('licenseToken').placeholder = '(license token already set \u2014 enter new token to replace)';
         setLicenseStatus('License active \u2713', true, cfg.licenseTier || null);
       }
 

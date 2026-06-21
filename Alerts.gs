@@ -304,12 +304,17 @@ function _isWhitelisted_(email, ip) {
 }
 
 function saveWhitelist(raw) {
-  const entries = String(raw || '').replace(/,/g, '\n').split('\n').map(e => e.trim()).filter(Boolean);
+  const lines = String(raw || '').replace(/,/g, '\n').split('\n')
+    .map(e => e.trim().toLowerCase()).filter(Boolean);
+
+  const entries  = lines.filter(e => _isValidWhitelistEntry_(e));
+  const rejected = lines.filter(e => !_isValidWhitelistEntry_(e));
+
   PropertiesService.getScriptProperties().setProperty('SUSPICIOUS_WHITELIST', entries.join('\n'));
   __WHITELIST = null;
   const emails = entries.filter(e => e.includes('@')).length;
   const ips    = entries.length - emails;
-  return { ok: true, emailCount: emails, ipCount: ips };
+  return { ok: true, emailCount: emails, ipCount: ips, rejected: rejected };
 }
 
 function getWhitelist() {

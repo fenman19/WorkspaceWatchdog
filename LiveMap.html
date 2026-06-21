@@ -2605,7 +2605,12 @@ function wlAddEntry() {
   status.style.color = 'var(--text2)';
   status.textContent = 'Adding...';
   google.script.run
-    .withSuccessHandler(function() {
+    .withSuccessHandler(function(res) {
+      if (!res || !res.ok) {
+        status.style.color = 'var(--red)';
+        status.textContent = 'Rejected — not a valid email or IP';
+        return;
+      }
       status.style.color = 'var(--green)';
       status.textContent = 'Added: ' + entry;
       input.value = '';
