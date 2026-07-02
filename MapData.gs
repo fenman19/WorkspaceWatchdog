@@ -215,14 +215,19 @@ function getMapOUList() {
 function getMapNotifications() {
   _requireAllowedUser_();
   const props = PropertiesService.getScriptProperties();
+  // License fields derive from _getLicenseState_() — the same single source of
+  // truth the in-page banner uses (getLicenseStateForClient) — so the title-bar
+  // badge and the banner always agree. warn15/warn7/warn1 → expiring;
+  // mapLocked/shutdown → expired; active/lifetime/unlicensed → neither.
+  const licState = _getLicenseState_();
   const result = {
     updateAvailable:  false,
     latestVersion:    null,
     installedVersion: getInstalledVersion(),
-    licenseExpiring:  false,
-    licenseExpired:   false,
-    licenseDaysLeft:  null,
-    licenseTier:      props.getProperty('WW_LICENSE_TIER') || 'free'
+    licenseExpiring:  licState.phase === 'warn15' || licState.phase === 'warn7' || licState.phase === 'warn1',
+    licenseExpired:   licState.phase === 'mapLocked' || licState.phase === 'shutdown',
+    licenseDaysLeft:  licState.daysUntil,
+    licenseTier:      licState.tier || ''
   };
 
   const lastCheck  = props.getProperty(UPDATER.PROP_LAST_CHECK);
@@ -246,15 +251,6 @@ function getMapNotifications() {
       result.latestVersion   = cached;
       result.updateAvailable = _versionCompare_(result.installedVersion, cached) < 0;
     }
-  }
-
-  const expiryStr = props.getProperty('WW_LICENSE_EXPIRY');
-  if (expiryStr) {
-    const expiry   = new Date(expiryStr);
-    const daysLeft = Math.ceil((expiry - Date.now()) / (1000 * 60 * 60 * 24));
-    result.licenseDaysLeft = daysLeft;
-    if (daysLeft <= 0)       result.licenseExpired  = true;
-    else if (daysLeft <= 30) result.licenseExpiring = true;
   }
 
   return result;
