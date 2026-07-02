@@ -284,7 +284,7 @@ function _fetchTokenEvents_(startU, endU) {
   let page;
   do {
     if (page) params.pageToken = page;
-    const resp = AdminReports.Activities.list('all', 'token', params);
+    const resp = _reportsListSafe_('all', 'token', params);
     const items = (resp && resp.items) || [];
     for (let i = 0; i < items.length; i++) {
       const a = items[i];
