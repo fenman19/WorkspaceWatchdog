@@ -22,7 +22,7 @@ function dailyDigest() {
     const data = _buildDigestData_();
     if (chatEnabled) {
       const url = p.getProperty('CHAT_WEBHOOK_URL');
-      if (url) sendChatAlert_(_buildDigestMessage_());
+      if (url) sendChatAlert_(_buildDigestMessage_(data));
     }
     if (emailEnabled) _sendDigestEmail_(data);
     _logDiagnostics('dailyDigest', new Date(), new Date(), 0, 0,
@@ -41,8 +41,9 @@ function sendDailyDigestNow() {
     return;
   }
   try {
-    const data = _buildDigestData_();
-    sendChatAlert_(_buildDigestMessage_());
+    // Manual test: skip the snapshot write so the scheduled run's baseline survives.
+    const data = _buildDigestData_(true);
+    sendChatAlert_(_buildDigestMessage_(data));
     _sendDigestEmail_(data);
     SpreadsheetApp.getActive().toast('Digest sent (Chat + email).', 'Workspace Watchdog', 5);
   } catch (e) {
@@ -50,7 +51,7 @@ function sendDailyDigestNow() {
   }
 }
 
-function _buildDigestData_() {
+function _buildDigestData_(skipSnapshotWrite) {
   const ss       = SpreadsheetApp.getActive();
   const shMain   = ss.getSheetByName(CONFIG.MAIN);
   const shSusp   = ss.getSheetByName(CONFIG.SUSPICIOUS);
@@ -93,12 +94,14 @@ function _buildDigestData_() {
   const p = PropertiesService.getScriptProperties();
   let yesterday = null;
   try { const snap = p.getProperty('DIGEST_SNAPSHOT'); if (snap) yesterday = JSON.parse(snap); } catch(e) {}
-  try {
-    p.setProperty('DIGEST_SNAPSHOT', JSON.stringify({
-      date: Utilities.formatDate(new Date(), CONFIG.TZ, 'yyyy-MM-dd'),
-      totalEvents, successCount, failCount, outsideCount, failRate: parseFloat(failRate)
-    }));
-  } catch(e) {}
+  if (!skipSnapshotWrite) {
+    try {
+      p.setProperty('DIGEST_SNAPSHOT', JSON.stringify({
+        date: Utilities.formatDate(new Date(), CONFIG.TZ, 'yyyy-MM-dd'),
+        totalEvents, successCount, failCount, outsideCount, failRate: parseFloat(failRate)
+      }));
+    } catch(e) {}
+  }
 
   let comparison = null;
   if (yesterday) {
@@ -122,8 +125,8 @@ function _buildDigestData_() {
   };
 }
 
-function _buildDigestMessage_() {
-  const d = _buildDigestData_();
+function _buildDigestMessage_(data) {
+  const d = data;
   let msg = 'Workspace Watchdog Daily Digest - ' + d.date + '\n';
   msg += '\n*Last 24 Hours*\n';
   msg += 'Total Events: ' + d.totalEvents + '\n';
