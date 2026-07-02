@@ -438,7 +438,7 @@ function _deleteMyTriggers_() {
   try {
     const me = ScriptApp.getProjectTriggers();
     me.forEach(function(t) {
-      if (['scheduledSync','weeklyReset','cacheWarmup','dailyDigest'].includes(t.getHandlerFunction())) {
+      if (['scheduledSync','weeklyReset','cacheWarmup','dailyDigest','autoRetryFailedGeo'].includes(t.getHandlerFunction())) {
         ScriptApp.deleteTrigger(t);
       }
     });

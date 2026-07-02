@@ -285,6 +285,35 @@ function fillBlankGeoInMain() {
     'Workspace Watchdog', 5);
 }
 
+// Time-driven trigger handler: automatically backfills Main-sheet rows that
+// still carry blank/failed geo, reusing the exact same code path as the manual
+// "Fill Blank Geo in Main" menu item. This is what closes the gap where a row
+// first written with failed geo never gets updated after its IP later resolves.
+// Intentionally does NOT check license state — it's a lightweight, idempotent
+// maintenance task and is meant to stay safe to run during license-enforcement
+// testing (it's independent of scheduledSync, which self-skips on shutdown).
+// Registered hourly by install/fastInstall and by _enableAutoGeoRetry_().
+function autoRetryFailedGeo() {
+  try {
+    fillBlankGeoInMain();
+  } catch (e) {
+    _logDiagnostics('autoRetryFailedGeo', new Date(), new Date(), 0, 0,
+      'Auto geo retry failed: ' + (e && e.message ? e.message : e));
+  }
+}
+
+// One-shot installer so an already-running deployment can enable the hourly
+// auto-retry trigger without a full reinstall. Idempotent: removes any existing
+// copy first so repeated calls never stack duplicate triggers.
+function _enableAutoGeoRetry_() {
+  ScriptApp.getProjectTriggers().forEach(function(t) {
+    if (t.getHandlerFunction() === 'autoRetryFailedGeo') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('autoRetryFailedGeo').timeBased().everyHours(1).create();
+  SpreadsheetApp.getActive().toast(
+    'Auto geo retry enabled — runs hourly.', 'Workspace Watchdog', 5);
+}
+
 function _backfillGeoForEmail_(email, shGeo, geoMap, lookbackDays) {
   const ev = _fetchLatestLoginEventForUser_(email, lookbackDays || 180);
   if (!ev || !ev.ip) return null;

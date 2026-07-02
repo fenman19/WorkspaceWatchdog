@@ -1,9 +1,8 @@
 {
-  "version": "3.6.2",
-  "released": "2026-06-20",
+  "version": "3.6.3",
+  "released": "2026-06-21",
   "changelog": [
-    "Fixed stored XSS vulnerability in the Suspicious Event Whitelist, affecting both the Live Map's Add button and the Settings textarea editor",
-    "Added per-call authorization checks so removing a user from the allowed list takes effect immediately, instead of only on their next page load",
-    "IPinfo token and license key are no longer sent to the browser in plaintext — Settings and Setup Wizard now show a Set/Not Set indicator instead"
+    "Added an hourly auto-retry that backfills Main-sheet rows still showing blank or failed geolocation, so stuck rows recover on their own instead of needing a manual 'Fill Blank Geo in Main' run",
+    "New 'Enable Auto Geo Retry' menu item under Advanced to turn this on for existing installs without a full reinstall"
   ]
 }

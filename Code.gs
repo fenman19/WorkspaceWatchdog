@@ -47,6 +47,7 @@ function onOpen() {
       .addItem('Rebuild Key Index',           'rebuildKeyIndex')
       .addItem('Migrate Suspicious Sheet',    'migrateSuspiciousSheet')
       .addItem('Fill Blank Geo in Main',      'fillBlankGeoInMain')
+      .addItem('Enable Auto Geo Retry',       '_enableAutoGeoRetry_')
       .addItem('Trim Setup Sheet',            'trimSetupSheetMenu')
       .addItem('Clean Up Alert Keys',         'cleanupAlertKeysNow')
       .addItem('Purge All Alert Keys',        'purgeAlertKeys')

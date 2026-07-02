@@ -25,6 +25,7 @@ function installWorkspaceWatchdog() {
   ScriptApp.newTrigger('cacheWarmup').timeBased().everyMinutes(CONFIG.CACHE_WARMUP_INTERVAL_MINUTES).create();
   ScriptApp.newTrigger('dailyDigest').timeBased().everyHours(1).create();
   ScriptApp.newTrigger('weeklyReport').timeBased().everyHours(1).create();
+  ScriptApp.newTrigger('autoRetryFailedGeo').timeBased().everyHours(1).create();
 
   PropertiesService.getScriptProperties().deleteProperty('lastRunISO');
 
@@ -80,6 +81,7 @@ function fastInstallWorkspaceWatchdog(seedMinutes) {
     ScriptApp.newTrigger('cacheWarmup').timeBased().everyMinutes(CONFIG.CACHE_WARMUP_INTERVAL_MINUTES).create();
     ScriptApp.newTrigger('dailyDigest').timeBased().everyHours(1).create();
     ScriptApp.newTrigger('weeklyReport').timeBased().everyHours(1).create();
+    ScriptApp.newTrigger('autoRetryFailedGeo').timeBased().everyHours(1).create();
 
     p.setProperties({
       INSTALL_COMPLETE: 'true',
