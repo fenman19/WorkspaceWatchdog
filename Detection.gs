@@ -309,7 +309,6 @@ function _refreshSuspicious_(triggerName) {
   const combined = out.concat(retained);
   _clearBody(shSusp); _setHeaders(shSusp, SUSP_HEADERS);
   if (combined.length) shSusp.getRange(2,1,combined.length,SUSP_HEADERS.length).setValues(combined);
-  _dedupeSheetByKey(shSusp, SUSP_HEADERS, SUSP_HEADERS.indexOf('Timestamp (CT)'));
   _dedupeByComposite_(shSusp, [1,2,3,16,17]);
 }
 
