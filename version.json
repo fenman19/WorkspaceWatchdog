@@ -1,8 +1,9 @@
 {
-  "version": "3.6.3",
+  "version": "3.6.4",
   "released": "2026-06-21",
   "changelog": [
-    "Added an hourly auto-retry that backfills Main-sheet rows still showing blank or failed geolocation, so stuck rows recover on their own instead of needing a manual 'Fill Blank Geo in Main' run",
-    "New 'Enable Auto Geo Retry' menu item under Advanced to turn this on for existing installs without a full reinstall"
+    "Fixed silent loss of distinct suspicious events that landed on the same second — the Suspicious sheet no longer dedupes by timestamp",
+    "Fixed the Live Map title-bar license badge, which read a property that was never written and could never fire; it now uses the same license state source as the in-page banner",
+    "Token-event fetch in the sync path now retries transient Reports API errors like the login fetch already did, preventing false sync aborts and re-fetch windows from growing"
   ]
 }
