@@ -1,8 +1,7 @@
 {
-  "version": "3.6.5",
-  "released": "2026-07-02",
+  "version": "3.6.6",
+  "released": "2026-07-07",
   "changelog": [
-    "Fixed the daily digest building its data twice — the second build stamped the day-over-day snapshot early, so the Chat path always saw a null comparison; the digest now builds once and shares the data between Chat and email",
-    "Manual digest test runs (Send Digest Now) no longer overwrite the daily comparison snapshot, so an afternoon test no longer corrupts the next morning's vs-yesterday deltas"
+    "Fixed a false Impossible Travel alert caused by failed geo lookups surfacing as the (0,0) null-island coordinate — a login pair is now skipped when either event's latitude/longitude is missing, blank, non-numeric, or exactly (0,0), so bad geo data can no longer masquerade as a real location near the Gulf of Guinea"
   ]
 }
