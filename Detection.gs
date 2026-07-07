@@ -273,7 +273,12 @@ function _refreshSuspicious_(triggerName) {
         e.lat = Number(parts[0]); e.lon = Number(parts[1]);
       } else { e.lat = NaN; e.lon = NaN; }
     });
-    const ok = byUser[email].filter(e => e.name === 'login_success' && _isCoord(e.lat) && _isCoord(e.lon));
+    // Guard against null-island (0,0): geo providers return 0,0 for unknown IPs,
+    // and 0 passes _isCoord (it's finite), so a failed lookup can masquerade as a
+    // real coordinate near the Gulf of Guinea and trip a false Impossible Travel.
+    // Dropping such events here means no pair is ever formed from bad coordinates.
+    // (NaN / blank / missing latlng are already rejected by _isCoord above.)
+    const ok = byUser[email].filter(e => e.name === 'login_success' && _isCoord(e.lat) && _isCoord(e.lon) && !(e.lat === 0 && e.lon === 0));
     for (let i=1;i<ok.length;i++) {
       const a = ok[i-1], b = ok[i];
       const miles = _haversineMi(a.lat,a.lon,b.lat,b.lon);
