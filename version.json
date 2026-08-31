@@ -1,7 +1,14 @@
 {
-  "version": "3.6.6",
-  "released": "2026-07-07",
+  "version": "3.7.0",
+  "released": "2026-08-31",
   "changelog": [
-    "Fixed a false Impossible Travel alert caused by failed geo lookups surfacing as the (0,0) null-island coordinate — a login pair is now skipped when either event's latitude/longitude is missing, blank, non-numeric, or exactly (0,0), so bad geo data can no longer masquerade as a real location near the Gulf of Guinea"
+    "Added U.S. Safe States monitoring: successful U.S. logins from states not on the configured Safe States list can now be flagged as suspicious and sent to Google Chat",
+    "Added optional cellular/wireless ISP suppression for Safe States monitoring using the existing wireless-provider exclusion list",
+    "Added a State Monitoring activation cutoff so existing historical login rows are not retroactively flagged when the feature is first enabled",
+    "Improved wireless-provider list handling so ISP names containing commas are preserved correctly",
+    "Preserved existing Script Properties during guided install/repair so saved settings such as the Google Chat webhook are not erased",
+    "Improved guided-install diagnostics, trigger health checks, and automatic retry of failed geolocation lookups",
+    "Preserved the Impossible Travel null-island protection for missing or invalid geolocation data",
+    "Updated the Live Map to use the key-free OpenStreetMap basemap so the map no longer displays API KEY REQUIRED tiles"
   ]
 }
