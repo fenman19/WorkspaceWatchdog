@@ -50,6 +50,27 @@
     .badge-trial    { background: #fef3c7; color: #92400e; }
     .badge-paid     { background: #d1fae5; color: #065f46; }
     .badge-lifetime { background: #ede9fe; color: #4c1d95; }
+    .guide { background:#f8fbff; border:1px solid #d2e3fc; border-radius:10px; padding:10px 12px; margin:10px 0; font-size:12px; line-height:1.45; }
+    .guide strong { color:#202124; }
+    .guide a.instruction-link { color:#174ea6; text-decoration:underline; font-weight:700; }
+    .guide a.instruction-link:hover { color:#0b57d0; }
+    .guide ol { margin:7px 0 0 18px; padding:0; }
+    .guide li { margin:4px 0; }
+    .guide-links { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+    .guide-links a { display:inline-block; background:#e8f0fe; color:#174ea6; text-decoration:none; border-radius:999px; padding:6px 10px; font-weight:600; font-size:11px; }
+    .api-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .api-box { border:1px solid #dadce0; border-radius:8px; padding:10px; background:#fff; }
+    .api-box.okbox { border-color:#81c995; background:#f6fff8; }
+    .api-box.badbox { border-color:#f28b82; background:#fff8f7; }
+    .api-title { font-size:12px; font-weight:700; margin-bottom:4px; }
+    .api-detail { font-size:11px; color:#5f6368; line-height:1.4; white-space:pre-wrap; }
+    .health-list { margin-top:10px; }
+    .health-row { display:grid; grid-template-columns:22px 1fr; gap:7px; padding:7px 0; border-bottom:1px solid #eee; }
+    .health-row:last-child { border-bottom:none; }
+    .health-icon { font-weight:700; }
+    .health-label { font-size:12px; font-weight:700; }
+    .health-detail { font-size:11px; color:#5f6368; margin-top:2px; }
+    .optional-tag { font-size:9px; color:#5f6368; background:#f1f3f4; border-radius:999px; padding:2px 6px; margin-left:5px; text-transform:uppercase; }
   </style>
 </head>
 <body>
@@ -65,6 +86,18 @@
   <div class="status-box">
     <div class="lbl">Installation Status</div>
     <div id="installStatusText" style="color:#9aa0a6;">Checking...</div>
+  </div>
+
+  <div class="guide">
+    <strong>Guided installation</strong>
+    <ol>
+      <li>Activate the license from your welcome email.</li>
+      <li>Add optional reputation/geolocation keys.</li>
+      <li>Connect a Google Cloud project, enable Admin SDK API and Apps Script API, and allow Apps Script API access.</li>
+      <li>Test both Google Workspace APIs. Use the repair links only if a test fails.</li>
+      <li>Run Fast Install, then run the Final Health Check.</li>
+    </ol>
+    <div class="guide-links" id="topGuideLinks"></div>
   </div>
 
   <!-- Step 1: License -->
@@ -100,7 +133,8 @@
           <div>
             <label for="ipinfoToken">IPInfo Token <span style="font-weight:400;color:#5f6368;">(optional)</span></label>
             <input id="ipinfoToken" type="text" placeholder="token from ipinfo.io" style="margin-top:4px;">
-            <div class="hint">Free tier: 50k lookups/month. Leave blank to use ip-api.com fallback.
+            <div class="hint">Free tier available. Leave blank to use the configured fallback.
+              <a id="ipinfoLink" href="https://ipinfo.io/signup" target="_blank">Create IPInfo account</a>.
               <span id="ipinfoTokenStatus" style="font-weight:600;"></span>
             </div>
           </div>
@@ -110,23 +144,152 @@
           <div>
             <label for="abuseIpDbKey">AbuseIPDB Key <span style="font-weight:400;color:#5f6368;">(optional)</span></label>
             <input id="abuseIpDbKey" type="text" placeholder="API key from abuseipdb.com" style="margin-top:4px;">
-            <div class="hint">Enables IP reputation scoring on the Suspicious sheet. Free tier available.</div>
+            <div class="hint">Enables IP reputation scoring on the Suspicious sheet.
+              <a id="abuseLink" href="https://www.abuseipdb.com/register" target="_blank">Create AbuseIPDB account</a>.
+              <span id="abuseKeyStatus" style="font-weight:600;"></span>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Step 3: Map Access -->
+  <!-- Step 3: Google Cloud Setup -->
   <div class="card">
     <div class="card-title collapsible" onclick="toggleCard(this)">
-      Step 3 &mdash; Full Screen Map Access <span class="caret">&#9660;</span>
+      Step 3 &mdash; Google Cloud &amp; OAuth Setup <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:1500px;">
+      <div style="margin-top:10px;">
+        <div class="guide" style="margin-top:0;">
+          <strong>Required before the first install and for repository updates.</strong>
+          <div class="hint" style="margin-top:6px;">
+            Create this project while signed in as a Google Workspace administrator for the organization installing Workspace Watchdog.
+            Use an <strong>Internal</strong> OAuth audience so the app remains limited to that organization and does not require public Google verification.
+          </div>
+
+          <div class="step-row" style="margin-top:12px;">
+            <span class="step-badge">1</span>
+            <div>
+              <strong>Create a new Google Cloud project</strong>
+              <ol>
+                <li>Open <a id="cloudProjectsLink" class="instruction-link" href="#" target="_blank">Manage Resources</a> and click <strong>Create Project</strong>.</li>
+                <li>Name it <strong>Workspace Watchdog</strong> or <strong>Workspace Watchdog - Your Organization</strong>.</li>
+                <li>Select your organization's Google Cloud organization and an appropriate folder, if prompted.</li>
+                <li>Click <strong>Create</strong>, then select the new project from the project selector at the top of the Cloud Console.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <span class="step-badge">2</span>
+            <div>
+              <strong>Configure the OAuth consent screen</strong>
+              <ol>
+                <li>Open <a id="oauthOverviewLink" class="instruction-link" href="#" target="_blank">Google Auth Platform</a> and click <strong>Get Started</strong> if this project has not been configured.</li>
+                <li>For <strong>App name</strong>, enter <strong>Workspace Watchdog</strong>.</li>
+                <li>Select an administrator email for <strong>User support email</strong>.</li>
+                <li>For <a id="oauthAudienceLink" class="instruction-link" href="#" target="_blank">Audience</a>, select <strong>Internal</strong>. Do not select External for a customer-owned installation.</li>
+                <li>Enter an administrator or IT support address under <strong>Developer contact information</strong>.</li>
+                <li>Complete the setup. A logo, homepage, privacy policy, and terms links are optional for an internal-only customer project.</li>
+              </ol>
+              <div class="hint">
+                <strong>Do not create an OAuth client ID.</strong> Apps Script manages its own OAuth authorization for this bound script.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <span class="step-badge">3</span>
+            <div>
+              <strong>Confirm OAuth data access</strong>
+              <div class="hint" style="margin-top:4px;">
+                Apps Script normally derives these permissions from <code>appsscript.json</code>. In Google Auth Platform &rarr;
+                <a id="oauthDataAccessLink" class="instruction-link" href="#" target="_blank">Data Access</a>, add or confirm the following scopes if Google asks you to configure them:
+              </div>
+              <div style="margin-top:7px;padding:8px;border:1px solid #dadce0;border-radius:6px;background:#fff;font-family:monospace;font-size:10px;line-height:1.55;overflow-wrap:anywhere;">
+                https://www.googleapis.com/auth/admin.directory.user.readonly<br>
+                https://www.googleapis.com/auth/admin.reports.audit.readonly<br>
+                https://www.googleapis.com/auth/script.container.ui<br>
+                https://www.googleapis.com/auth/script.external_request<br>
+                https://www.googleapis.com/auth/script.scriptapp<br>
+                https://www.googleapis.com/auth/script.projects<br>
+                https://www.googleapis.com/auth/spreadsheets<br>
+                https://www.googleapis.com/auth/userinfo.email<br>
+                https://www.googleapis.com/auth/gmail.send<br>
+                https://www.googleapis.com/auth/gmail.compose<br>
+                https://www.googleapis.com/auth/gmail.modify<br>
+                https://www.googleapis.com/auth/gmail.addons.current.action.compose
+              </div>
+              <div class="hint" style="margin-top:6px;">
+                These scopes support audit reporting, directory lookups, spreadsheet access, repository updates, and optional email features.
+                Because the OAuth audience is Internal, authorization is limited to users in the customer's Workspace organization.
+              </div>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <span class="step-badge">4</span>
+            <div>
+              <strong>Enable the required APIs</strong>
+              <ol>
+                <li>Open <a id="adminSdkLink" class="instruction-link" href="#" target="_blank">Admin SDK API</a> and click <strong>Enable</strong>.</li>
+                <li>Open <a id="appsScriptApiLink" class="instruction-link" href="#" target="_blank">Google Apps Script API</a> and click <strong>Enable</strong>.</li>
+                <li>Open <a id="appsScriptDashboardLink" class="instruction-link" href="#" target="_blank">Apps Script Dashboard Settings</a> and turn on <a id="appsScriptApiLink" class="instruction-link" href="#" target="_blank">Google Apps Script API</a> access for your account.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <span class="step-badge">5</span>
+            <div>
+              <strong>Attach the Cloud project to this Apps Script project</strong>
+              <ol>
+                <li>In Google Cloud, open <a id="cloudProjectHelpLink" class="instruction-link" href="#" target="_blank">IAM &amp; Admin &rarr; Settings</a> and copy the numeric <strong>Project number</strong>. Do not copy the Project ID.</li>
+                <li>Open <a id="cloudProjectSettingsLink" class="instruction-link" href="#" target="_blank">Apps Script Project Settings</a>.</li>
+                <li>Under <strong>Google Cloud Platform (GCP) Project</strong>, click <strong>Change project</strong>.</li>
+                <li>Paste the Project number and save.</li>
+                <li>Accept any authorization prompt, then reload this spreadsheet.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="step-row">
+            <span class="step-badge">6</span>
+            <div>
+              <strong>Verify the connection</strong>
+              <ol>
+                <li>Return to this wizard.</li>
+                <li>Run <strong>Test Both</strong> in Step 5.</li>
+                <li>If both tests pass, continue with <strong>Fast Install</strong> or <strong>Install / Repair</strong>.</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:8px;">
+            <strong>Important:</strong> Changing the associated Cloud project invalidates the previous authorization.
+            A new authorization prompt is normal.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Map Access -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Step 4 &mdash; Full Screen Map Access <span class="caret">&#9660;</span>
     </div>
     <div class="card-body" style="max-height:400px;">
       <div style="margin-top:10px;">
-        <div class="hint" style="margin-bottom:8px;">
-          Emails allowed to access the full screen map. Deploy as Web App with
-          <strong>Execute as: User accessing the web app</strong>.
+        <div class="guide" style="margin-top:0;">
+          <strong>Optional feature.</strong> Install the dashboard first. To enable the full-screen map:
+          <ol>
+            <li>Open <a id="deploymentsLink" class="instruction-link" href="#" target="_blank">Deployments</a> and create a Web App deployment.</li>
+            <li>Choose <strong>Execute as: User accessing the web app</strong>.</li>
+            <li>Copy the deployment ID, then open <a id="projectSettingsLink" class="instruction-link" href="#" target="_blank">Apps Script Project Settings</a> and add it to Script Properties as <code>DEPLOYMENT_ID</code>.</li>
+            <li>Return here, save allowed users, and click Show Map URL.</li>
+          </ol>
         </div>
         <label for="mapAllowedUsers">Allowed users (one per line)</label>
         <textarea id="mapAllowedUsers" rows="3"
@@ -141,10 +304,10 @@
     </div>
   </div>
 
-  <!-- Step 4: Install -->
+  <!-- Step 5: Install -->
   <div class="card">
     <div class="card-title collapsible" onclick="toggleCard(this)">
-      Step 4 &mdash; Install / Repair <span class="caret">&#9660;</span>
+      Step 5 &mdash; Install / Repair <span class="caret">&#9660;</span>
     </div>
     <div class="card-body" style="max-height:700px;">
       <div style="margin-top:10px;">
@@ -156,6 +319,17 @@
         <div class="row">
           <button class="secondary" onclick="testReports()">Test Reports API</button>
           <button class="secondary" onclick="testDirectory()">Test Directory API</button>
+          <button class="secondary" onclick="testBothApis()">Test Both</button>
+        </div>
+        <div class="api-grid">
+          <div id="reportsBox" class="api-box">
+            <div class="api-title">Admin Reports API</div>
+            <div class="api-detail">Not tested yet.</div>
+          </div>
+          <div id="directoryBox" class="api-box">
+            <div class="api-title">Admin Directory API</div>
+            <div class="api-detail">Not tested yet.</div>
+          </div>
         </div>
         <div class="row" style="margin-top:12px;">
           <button class="primary"   onclick="installNow()">Install / Repair</button>
@@ -188,7 +362,33 @@
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      Final Health Check <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:700px;">
+      <div style="margin-top:10px;">
+        <div class="hint">Run this after installation or after repairing an API. Required checks must pass; map checks are optional.</div>
+        <div class="row">
+          <button class="accent" onclick="runHealthCheck()">Run Final Health Check</button>
+          <button class="secondary" onclick="copyDiagnostics()">Copy Diagnostics</button>
+        </div>
+        <div id="healthSummary" class="status"></div>
+        <div id="healthList" class="health-list"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
+    var guideLinks = {};
+    var lastHealthReport = null;
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
     function setStatus(msg, ok) {
       var el = document.getElementById('status');
       el.textContent = msg || '';
@@ -204,6 +404,37 @@
 
     function openSettings() { google.script.run.showSettingsPanel(); }
     function openUpdates()  { google.script.run.showUpdatesPanel();  }
+
+    function loadGuideLinks() {
+      google.script.run
+        .withSuccessHandler(function(links) {
+          guideLinks = links || {};
+          var items = [
+            ['Open Apps Script', links.scriptEditor],
+            ['Project Settings', links.projectSettings],
+            ['Deployments', links.deployments],
+            ['Admin SDK API', links.adminSdkApi],
+            ['Apps Script API', links.appsScriptApi]
+          ];
+          document.getElementById('topGuideLinks').innerHTML = items.filter(function(x){return x[1];}).map(function(x) {
+            return '<a href="' + escapeHtml(x[1]) + '" target="_blank">' + escapeHtml(x[0]) + '</a>';
+          }).join('');
+          if (links.deployments) document.getElementById('deploymentsLink').href = links.deployments;
+          if (links.projectSettings) document.getElementById('projectSettingsLink').href = links.projectSettings;
+          if (links.cloudProjects) document.getElementById('cloudProjectsLink').href = links.cloudProjects;
+          if (links.oauthOverview) document.getElementById('oauthOverviewLink').href = links.oauthOverview;
+          if (links.oauthAudience) document.getElementById('oauthAudienceLink').href = links.oauthAudience;
+          if (links.oauthDataAccess) document.getElementById('oauthDataAccessLink').href = links.oauthDataAccess;
+          if (links.cloudProjectHelp) document.getElementById('cloudProjectHelpLink').href = links.cloudProjectHelp;
+          if (links.projectSettings) document.getElementById('cloudProjectSettingsLink').href = links.projectSettings;
+          if (links.adminSdkApi) document.getElementById('adminSdkLink').href = links.adminSdkApi;
+          if (links.appsScriptApi) document.getElementById('appsScriptApiLink').href = links.appsScriptApi;
+          if (links.appsScriptDashboard) document.getElementById('appsScriptDashboardLink').href = links.appsScriptDashboard;
+          if (links.ipInfo) document.getElementById('ipinfoLink').href = links.ipInfo;
+          if (links.abuseIpDb) document.getElementById('abuseLink').href = links.abuseIpDb;
+        })
+        .getSetupGuideLinks();
+    }
 
     function toggleCard(t) {
       var b = t.nextElementSibling, c = t.classList.contains('collapsed');
@@ -256,7 +487,14 @@
         its.style.color = '#d93025';
         ipinfoField.placeholder = 'token from ipinfo.io';
       }
-      document.getElementById('abuseIpDbKey').value              = cfg.abuseIpDbKey || '';
+      document.getElementById('abuseIpDbKey').value = '';
+      var abs = document.getElementById('abuseKeyStatus');
+      if (cfg.abuseIpDbKeySet) {
+        abs.textContent = ' Key configured'; abs.style.color = '#188038';
+        document.getElementById('abuseIpDbKey').placeholder = '(key already configured — enter new key to replace)';
+      } else {
+        abs.textContent = ' Not set'; abs.style.color = '#d93025';
+      }
       document.getElementById('fastInstallLookbackMinutes').value = cfg.fastInstallLookbackMinutes || 120;
 
       // Load existing license status if already activated \u2014 never pre-fill
@@ -310,13 +548,40 @@
         .getMapFullscreenUrl();
     }
 
-    function testReports()   { setStatus('Testing Reports API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testAdminAccess(); }
-    function testDirectory() { setStatus('Testing Directory API...'); google.script.run.withSuccessHandler(function(r){setStatus(r.message,!!r.ok);}).withFailureHandler(function(e){setStatus(e.message||String(e),false);}).testDirectoryAccess(); }
+    function renderApiResult(boxId, result) {
+      var box = document.getElementById(boxId);
+      box.className = 'api-box ' + (result.ok ? 'okbox' : 'badbox');
+      var detail = result.ok ? result.message : (result.message || 'Unknown error');
+      var steps = '';
+      if (!result.ok && result.steps && result.steps.length) {
+        steps = '<ol style="margin:7px 0 0 18px;padding:0;">' + result.steps.map(function(s){ return '<li>' + escapeHtml(s) + '</li>'; }).join('') + '</ol>';
+      }
+      var links = '';
+      if (!result.ok) {
+        var l = result.links || guideLinks || {};
+        var candidates = [['Apps Script', l.scriptEditor], ['Project Settings', l.projectSettings], ['Admin SDK API', l.adminSdkApi]];
+        links = '<div class="guide-links">' + candidates.filter(function(x){return x[1];}).map(function(x){return '<a href="'+escapeHtml(x[1])+'" target="_blank">'+escapeHtml(x[0])+'</a>';}).join('') + '</div>';
+      }
+      box.innerHTML = '<div class="api-title">' + escapeHtml(result.title || (result.ok ? 'Ready' : 'Failed')) + '</div>' +
+        '<div class="api-detail">' + escapeHtml(detail) + steps + links + '</div>';
+    }
+
+    function testReports(done) {
+      setStatus('Testing Reports API...');
+      google.script.run.withSuccessHandler(function(r){ renderApiResult('reportsBox', r); setStatus(r.ok ? 'Reports API passed.' : 'Reports API needs attention.', !!r.ok); if(done) done(); })
+        .withFailureHandler(function(e){ var r={ok:false,title:'Reports API test failed',message:e.message||String(e)}; renderApiResult('reportsBox',r); setStatus(r.message,false); if(done) done(); }).testAdminAccess();
+    }
+    function testDirectory(done) {
+      setStatus('Testing Directory API...');
+      google.script.run.withSuccessHandler(function(r){ renderApiResult('directoryBox', r); setStatus(r.ok ? 'Directory API passed.' : 'Directory API needs attention.', !!r.ok); if(done) done(); })
+        .withFailureHandler(function(e){ var r={ok:false,title:'Directory API test failed',message:e.message||String(e)}; renderApiResult('directoryBox',r); setStatus(r.message,false); if(done) done(); }).testDirectoryAccess();
+    }
+    function testBothApis() { testReports(function(){ testDirectory(); }); }
 
     function installNow() {
       setStatus('Installing... this may take a minute on large domains.');
       google.script.run
-        .withSuccessHandler(function(res) { setStatus('Install complete. Triggers: ' + res.triggerCount + (res.missingSheets&&res.missingSheets.length?' Missing: '+res.missingSheets.join(', '):'') + '.', true); })
+        .withSuccessHandler(function(res) { setStatus('Install complete. Triggers: ' + res.triggerCount + ' of ' + (res.expectedTriggerCount || 5) + (res.missingSheets&&res.missingSheets.length?' Missing sheets: '+res.missingSheets.join(', '):'') + '.', true); runHealthCheck(); })
         .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
         .installFromWizard(getInstallForm());
     }
@@ -324,7 +589,7 @@
     function fastInstallNow() {
       setStatus('Fast install — ' + (document.getElementById('fastInstallLookbackMinutes').value||120) + ' min seed window...');
       google.script.run
-        .withSuccessHandler(function(res) { setStatus('Fast install complete. Triggers: ' + res.triggerCount + '.', true); })
+        .withSuccessHandler(function(res) { setStatus('Fast install complete. Triggers: ' + res.triggerCount + ' of ' + (res.expectedTriggerCount || 5) + '.', true); runHealthCheck(); })
         .withFailureHandler(function(e)   { setStatus(e.message || String(e), false); })
         .installFromWizardFast(getInstallForm());
     }
@@ -344,6 +609,38 @@
         .backfillDays(days);
     }
 
+    function runHealthCheck() {
+      var summary = document.getElementById('healthSummary');
+      summary.textContent = 'Running checks...'; summary.className = 'status';
+      google.script.run
+        .withSuccessHandler(function(report) {
+          lastHealthReport = report;
+          summary.textContent = report.ok ? 'Ready to use — all required checks passed.' : 'Setup needs attention — review the failed required checks below.';
+          summary.className = 'status ' + (report.ok ? 'ok' : 'bad');
+          document.getElementById('healthList').innerHTML = (report.checks || []).map(function(c) {
+            var icon = c.ok ? '&#10003;' : (c.required ? '&#10007;' : '&#8212;');
+            var color = c.ok ? '#188038' : (c.required ? '#d93025' : '#5f6368');
+            return '<div class="health-row"><div class="health-icon" style="color:'+color+'">'+icon+'</div><div>' +
+              '<div class="health-label">'+escapeHtml(c.label)+(c.required?'':'<span class="optional-tag">Optional</span>')+'</div>' +
+              '<div class="health-detail">'+escapeHtml(c.detail)+'</div></div></div>';
+          }).join('');
+          if (report.reportsResult) renderApiResult('reportsBox', report.reportsResult);
+          if (report.directoryResult) renderApiResult('directoryBox', report.directoryResult);
+        })
+        .withFailureHandler(function(e) { summary.textContent = 'Health check failed: ' + (e.message || String(e)); summary.className = 'status bad'; })
+        .getInstallationHealth();
+    }
+
+    function copyDiagnostics() {
+      if (!lastHealthReport) { setStatus('Run the Final Health Check first.', false); return; }
+      var lines = ['Workspace Watchdog diagnostics', 'Version: ' + (lastHealthReport.version || 'unknown')];
+      (lastHealthReport.checks || []).forEach(function(c) { lines.push((c.ok ? 'PASS' : (c.required ? 'FAIL' : 'OPTIONAL')) + ' - ' + c.label + ': ' + c.detail); });
+      var text = lines.join('\n');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function(){ setStatus('Diagnostics copied.', true); }).catch(function(){ window.prompt('Copy diagnostics:', text); });
+      } else { window.prompt('Copy diagnostics:', text); }
+    }
+
     function getInstallForm() {
       return {
         ipinfoToken:                document.getElementById('ipinfoToken').value,
@@ -352,6 +649,22 @@
       };
     }
 
+    // Google Sheets can reuse a previously cached dialog size.
+    // Resize again from inside the open dialog so the wider layout is applied.
+    function resizeSetupWizard() {
+      try {
+        var maxWidth = Math.max(760, Math.min(1100, window.screen.availWidth - 140));
+        var maxHeight = Math.max(720, Math.min(920, window.screen.availHeight - 140));
+        google.script.host.setWidth(maxWidth);
+        google.script.host.setHeight(maxHeight);
+      } catch (e) {
+        // The server-side dimensions remain as the fallback.
+      }
+    }
+
+    resizeSetupWizard();
+    setTimeout(resizeSetupWizard, 250);
+    loadGuideLinks();
     loadConfig();
   </script>
 </body>

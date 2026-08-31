@@ -198,6 +198,33 @@ function _maybeAlertOutsideUS_(triggerName, r, g) {
   _sendAlertOnce_(r.key + '_outsideus', msg);
 }
 
+function _maybeAlertOutsideSafeStates_(triggerName, r, g) {
+  if (!CONFIG.STATE_MONITORING_ENABLED) return;
+  if (!_isStateMonitoringEventEligible_(r && r.ts)) return;
+  if (!CONFIG.CHAT_ALERT_ON_OUTSIDE_SAFE_STATES) return;
+  if (!_alertsEnabled_(triggerName)) return;
+  if (_isWhitelisted_(r.email, r.ip)) return;
+  const ev = String(r.eventName || '');
+  if (ev !== 'login_success') return;
+  const country = (g && g.country) ? String(g.country).trim().toUpperCase() : '';
+  if (country !== 'US') return;
+  const stateCode = _normalizeUsStateCode_(g && g.region);
+  if (!stateCode || _safeStateSet_().has(stateCode)) return;
+  if (CONFIG.IGNORE_MOBILE_STATE_MONITORING && _isMobileIsp_(g && g.isp)) return;
+  const isp = _cleanIsp_((g && g.isp) || '');
+  const loc = [g && g.city, g && g.region, g && g.country].filter(Boolean).join(', ');
+  const safe = Array.from(_safeStateSet_()).sort().join(', ') || '(none)';
+  const msg =
+    'Login Outside Safe States\n' +
+    'User:        ' + r.email + '\n' +
+    'Location:    ' + (loc || stateCode + ', US') + '\n' +
+    'State:       ' + stateCode + '\n' +
+    'Safe States: ' + safe + '\n' +
+    'IP:          ' + r.ip + (isp ? ' (' + isp + ')' : '') + '\n' +
+    'Time:        ' + _fmtCT(r.ts);
+  _sendAlertOnce_(r.key + '_outsidesafestates', msg);
+}
+
 function _maybeAlertImpossibleTravel_(triggerName, email, a, b, miles, mph) {
   if (!CONFIG.CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL) return;
   if (!_alertsEnabled_(triggerName)) return;
@@ -239,12 +266,13 @@ function _maybeAlertLoginBurst_(triggerName, email, count, windowMin, firstTs, l
 
 // ===== Chat Settings & Test ===================================================
 
-function saveChatSettings(webhookUrl, dedupeHours, onOutsideUS, onTravel, onBurst, scheduledOnly) {
+function saveChatSettings(webhookUrl, dedupeHours, onOutsideUS, onOutsideSafeStates, onTravel, onBurst, scheduledOnly) {
   const p = PropertiesService.getScriptProperties();
   if (webhookUrl && webhookUrl.trim()) p.setProperty('CHAT_WEBHOOK_URL', webhookUrl.trim());
   p.setProperties({
     CHAT_ALERT_DEDUPE_HOURS:         String(Number(dedupeHours) || 12),
     CHAT_ALERT_ON_OUTSIDE_US:        String(!!onOutsideUS),
+    CHAT_ALERT_ON_OUTSIDE_SAFE_STATES: String(onOutsideSafeStates !== false),
     CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL: String(!!onTravel),
     CHAT_ALERT_ON_BURST:             String(!!onBurst),
     CHAT_ALERT_SCHEDULED_ONLY:       String(!!scheduledOnly)

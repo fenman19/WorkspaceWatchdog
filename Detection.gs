@@ -1,7 +1,7 @@
 /* global AdminReports, AdminDirectory */
 /**
  * Detection.gs — Active Now refresh, Suspicious event detection (impossible travel,
- *                login bursts, outside US), and user risk scoring.
+ *                login bursts, outside US, safe-state monitoring), and user risk scoring.
  */
 
 function migrateSuspiciousSheet() {
@@ -212,7 +212,10 @@ function _refreshSuspicious_(triggerName) {
   function _suspTail_(dateObj, reason) {
     const suspNoTZ = _fmtCT_no_tz_(dateObj);
     const hb = _hourBucketNoTZ_(dateObj);
-    const severity = (reason === 'Impossible Travel') ? 3 : (reason === 'Login Burst') ? 2 : (reason === 'Outside US') ? 1 : 0;
+    const severity = (reason === 'Impossible Travel') ? 3
+                  : (reason === 'Login Burst') ? 2
+                  : (reason === 'Outside US' || reason === 'Outside Safe States') ? 1
+                  : 0;
     return [suspNoTZ, hb, severity];
   }
 
@@ -235,6 +238,37 @@ function _refreshSuspicious_(triggerName) {
       if (!ouAlerted) _markAlertedPermanently_(ouAlertKey);
     }
   });
+
+  // Outside Safe States — successful U.S. logins only. Unknown/blank state
+  // values are intentionally ignored, and selected carrier ISPs may be suppressed
+  // to reduce cellular/CGNAT location noise.
+  if (CONFIG.STATE_MONITORING_ENABLED) {
+    rows.forEach(r => {
+      if (String(r.name || '') !== 'login_success') return;
+      if (!_isStateMonitoringEventEligible_(r.ts)) return;
+      if (String(r.country || '').trim().toUpperCase() !== 'US') return;
+      const stateCode = _normalizeUsStateCode_(r.region);
+      if (!stateCode || _safeStateSet_().has(stateCode)) return;
+      if (_isWhitelisted_(r.email, r.ip)) return;
+      if (CONFIG.IGNORE_MOBILE_STATE_MONITORING && _isMobileIsp_(r.isp)) return;
+
+      const tail = _suspTail_(r.ts, 'Outside Safe States');
+      const stateAlertKey = String(r.key) + '_state';
+      const stateAlerted = _isAlertedPermanently_(stateAlertKey) ? 'Yes' : '';
+      const safe = Array.from(_safeStateSet_()).sort().join(', ');
+      out.push([
+        _fmtCT(r.ts), r.email, 'Outside Safe States',
+        'State=' + stateCode + (safe ? '; Safe=' + safe : ''),
+        r.city||'', r.region||'', r.country||'', r.latlng||'',
+        '', '', '', '',
+        '', '', r.key, '',
+        ...tail,
+        r.ip||'', _cleanIsp_(r.isp||''), '', '',
+        stateAlerted
+      ]);
+      if (!stateAlerted) _markAlertedPermanently_(stateAlertKey);
+    });
+  }
 
   // Bursts
   Object.keys(byUser).forEach(email => {
@@ -351,6 +385,7 @@ function getUserRiskScores() {
       ensure(email);
       if (reason === 'Impossible Travel') scores[email] += 20;
       if (reason === 'Login Burst')       scores[email] += 15;
+      if (reason === 'Outside Safe States') scores[email] += 10;
     }
   }
 
@@ -431,6 +466,7 @@ function getUserRiskTrend(email) {
       var reason = String(r[2] || '');
       if (reason === 'Impossible Travel') score += 20;
       if (reason === 'Login Burst')       score += 15;
+      if (reason === 'Outside Safe States') score += 10;
     });
     score = Math.min(100, score);
     return { week: wk.label, score: score };

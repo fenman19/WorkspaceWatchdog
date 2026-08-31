@@ -132,7 +132,10 @@ function _syncCore(triggerName) {
           const rowTs       = new Date(sheetRow[0]);
           const g           = geoMap[rowIp] || {};
           const r           = { email: rowEmail, eventName: rowEventName, ip: rowIp, key: rowKey, ts: rowTs };
-          if (!_isWhitelisted_(r.email, r.ip)) _maybeAlertOutsideUS_(triggerName, r, g);
+          if (!_isWhitelisted_(r.email, r.ip)) {
+            _maybeAlertOutsideUS_(triggerName, r, g);
+            _maybeAlertOutsideSafeStates_(triggerName, r, g);
+          }
         });
       }
       rowsAppended = newRows.length;

@@ -193,6 +193,12 @@
     .sc-red { color: var(--red); text-shadow: var(--glow-red); } .sc-blue { color: var(--blue); }
     #main { display: flex; flex: 1; overflow: hidden; position: relative; clip-path: inset(0); min-height: 0; }
     #map { flex: 1; }
+    /* Key-free raster basemap. OpenStreetMap tiles are darkened in-browser so
+       the map keeps the Workspace Watchdog dark visual style without requiring
+       a CARTO/API key. */
+    #map .leaflet-tile-pane {
+      filter: invert(100%) hue-rotate(180deg) brightness(72%) contrast(92%) saturate(70%);
+    }
     #globe-container { position: absolute; inset: 0; display: none; z-index: 5; }
 
     /* ── License expiry banner ────────────────────────────────────────────
@@ -286,6 +292,7 @@
     .gap-alert-travel  { border-left-color: #ff6d00 !important; background: rgba(255,109,0,0.06); }
     .gap-alert-burst   { border-left-color: #ffaa00 !important; background: rgba(255,170,0,0.06); }
     .gap-alert-outside { border-left-color: #f44336 !important; background: rgba(244,67,54,0.06); }
+    .gap-alert-state   { border-left-color: #7e57c2 !important; background: rgba(126,87,194,0.07); }
     .gap-alert-email {
       font-family: 'Rajdhani', sans-serif;
       font-size: 13px; font-weight: 700;
@@ -395,6 +402,7 @@
     .susp-travel { background: #ff6d00; --pulse-clr: rgba(255,109,0,0.6); }
     .susp-burst  { background: #ffaa00; --pulse-clr: rgba(255,170,0,0.6); }
     .susp-out    { background: #f44336; --pulse-clr: rgba(244,67,54,0.6); }
+    .susp-state  { background: #7e57c2; --pulse-clr: rgba(126,87,194,0.6); }
     #riskPanel .risk-label { font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; font-weight: 700; }
     .trend-wrap { margin-top: 10px; }
     .trend-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; font-weight: 700; }
@@ -742,6 +750,13 @@
           <div style="font-size:10px;color:var(--text2);">Login from foreign location</div>
         </div>
       </div>
+      <div class="gl-row">
+        <div style="width:3px;height:32px;background:#7e57c2;border-radius:2px;box-shadow:0 0 6px #7e57c2;flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#7e57c2;">Outside Safe States</div>
+          <div style="font-size:10px;color:var(--text2);">U.S. login from an unexpected state</div>
+        </div>
+      </div>
       <div class="gl-row" style="margin-top:4px;padding-top:8px;border-top:1px solid var(--border);">
         <div style="width:22px;border-top:2px dashed #ff6d00;flex-shrink:0;margin-top:5px;"></div>
         <div style="font-size:10px;color:var(--text2);">Impossible Travel Arc</div>
@@ -824,8 +839,9 @@ var _reloadInFlight = false;
 
 // Init map FIRST before any google.script.run calls
 map = L.map('map', { zoomControl: true }).setView([37, -96], 4);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-  attribution: 'CARTO | OpenStreetMap', subdomains: 'abcd', maxZoom: 19
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19
 }).addTo(map);
 arcLayer = L.layerGroup().addTo(map);
 
@@ -1605,9 +1621,10 @@ function onSusp(d) {
     if (!ll || !ll.includes(',')) return;
     var p = ll.split(','); var lat = +p[0], lon = +p[1];
     if (!isFinite(lat) || !isFinite(lon)) return;
-    var col = r.reason === 'Impossible Travel' ? '#ff6d00'  // orange
-            : r.reason === 'Login Burst'       ? '#ffaa00'  // yellow
-            :                                    '#f44336'; // outside US = red
+    var col = r.reason === 'Impossible Travel' ? '#ff6d00'
+            : r.reason === 'Login Burst'       ? '#ffaa00'
+            : r.reason === 'Outside Safe States' ? '#7e57c2'
+            :                                    '#f44336';
     var m = L.marker([lat, lon], { icon: mkIcon(col, 12) });
     m.opt_fail = r.reason === 'Login Burst'; m.opt_out = r.reason === 'Outside US'; m.opt_susp = true;
     m.on('click', function() { showSuspDetail(r); });
@@ -1803,8 +1820,11 @@ function drawSuspOverlay(d) {
     var p = ll.split(','), lat = +p[0], lon = +p[1];
     if (!isFinite(lat) || !isFinite(lon)) return;
     var cls = r.reason === 'Impossible Travel' ? 'susp-travel'
-             : r.reason === 'Login Burst'       ? 'susp-burst' : 'susp-out';
-    var lbl = r.reason === 'Impossible Travel' ? 'Travel' : r.reason === 'Login Burst' ? 'Burst' : 'Outside US';
+             : r.reason === 'Login Burst'       ? 'susp-burst'
+             : r.reason === 'Outside Safe States' ? 'susp-state' : 'susp-out';
+    var lbl = r.reason === 'Impossible Travel' ? 'Travel'
+            : r.reason === 'Login Burst' ? 'Burst'
+            : r.reason === 'Outside Safe States' ? 'Outside Safe States' : 'Outside US';
     var marker = L.marker([lat, lon], {
       icon: L.divIcon({
         className: '',
@@ -1813,7 +1833,7 @@ function drawSuspOverlay(d) {
         iconAnchor: [8, 8]
       })
     }).bindTooltip(
-      '<b style="color:' + (cls==='susp-travel'?'#f44336':cls==='susp-burst'?'#ce93d8':'#ffaa00') + ';">' +
+      '<b style="color:' + (cls==='susp-travel'?'#f44336':cls==='susp-burst'?'#ce93d8':cls==='susp-state'?'#7e57c2':'#ffaa00') + ';">' +
       esc(r.reason) + '</b><br>' + esc(r.email) +
       '<br><span style="font-size:11px;color:#9aa0a6;">' + esc(String(r.ts||'').slice(0,16)) + '</span>',
       { sticky: true }
@@ -2639,7 +2659,7 @@ function openFullScreen() {
   google.script.run
     .withSuccessHandler(function(url) {
       if (!url) {
-        showErr('Full-screen URL not configured. Set DEPLOYMENT_ID and API_TOKEN in Script Properties, then use Workspace Watchdog > Full-Screen Map from the sheet menu.');
+        showErr('Full-screen URL not configured. Set DEPLOYMENT_ID in Script Properties, then use Workspace Watchdog > Full-Screen Map from the sheet menu.');
         return;
       }
       window.open(url, '_blank');
@@ -2669,8 +2689,7 @@ function updateGlobeAlertPanel() {
   panel.classList.add('visible');
 
   var rows = (suspOverlayData.rows || []).slice(); // copy
-  // Sort: Impossible Travel first, then Burst, then Outside US, then by time desc
-  var order = { 'Impossible Travel': 0, 'Login Burst': 1, 'Outside US': 2 };
+  // Sort newest first; all suspicious reasons are supported
   // Sort newest first (reverse chronological)
   rows.sort(function(a, b) {
     return String(b.ts || '').localeCompare(String(a.ts || ''));
@@ -2686,10 +2705,11 @@ function updateGlobeAlertPanel() {
 
   list.innerHTML = rows.slice(0, 15).map(function(r) {
     var icon = r.reason === 'Impossible Travel' ? '&#9992;' :
-               r.reason === 'Login Burst'       ? '&#9889;' : '&#127758;';
-    var iconColor = r.reason === 'Impossible Travel' ? '#ff6d00' :  // orange
-                    r.reason === 'Login Burst'       ? '#ffaa00' :  // yellow
-                                                       '#f44336';  // red for outside US
+               r.reason === 'Login Burst'       ? '&#9889;' :
+               r.reason === 'Outside Safe States' ? '&#128205;' : '&#127758;';
+    var iconColor = r.reason === 'Impossible Travel' ? '#ff6d00' :
+                    r.reason === 'Login Burst'       ? '#ffaa00' :
+                    r.reason === 'Outside Safe States' ? '#7e57c2' : '#f44336';
     var reasonText = r.reason || 'Suspicious';
 
     // Build detail line
@@ -2712,6 +2732,9 @@ function updateGlobeAlertPanel() {
     } else if (r.reason === 'Outside US') {
       var loc = [r.fromCity, r.fromReg, r.fromCo].filter(Boolean).join(', ');
       detail = loc ? 'Login from: ' + esc(loc) : 'Login from outside US';
+    } else if (r.reason === 'Outside Safe States') {
+      var stateLoc = [r.fromCity, r.fromReg, r.fromCo].filter(Boolean).join(', ');
+      detail = stateLoc ? 'Unexpected state: ' + esc(stateLoc) : (r.details ? esc(r.details) : 'Login outside Safe States');
     }
 
     // Time ago
@@ -2725,10 +2748,12 @@ function updateGlobeAlertPanel() {
     }
 
     var reasonLabel = r.reason === 'Impossible Travel' ? 'Impossible Travel' :
-                      r.reason === 'Login Burst'       ? 'Login Burst' : 'Outside US';
+                      r.reason === 'Login Burst'       ? 'Login Burst' :
+                      r.reason === 'Outside Safe States' ? 'Outside Safe States' : 'Outside US';
 
     var itemClass = r.reason === 'Impossible Travel' ? 'gap-alert-travel' :
-                    r.reason === 'Login Burst'       ? 'gap-alert-burst'  : 'gap-alert-outside';
+                    r.reason === 'Login Burst'       ? 'gap-alert-burst'  :
+                    r.reason === 'Outside Safe States' ? 'gap-alert-state' : 'gap-alert-outside';
 
     return '<div class="gap-alert-item ' + itemClass + '" onclick="globeAlertClick(' + JSON.stringify(r) + ')">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
@@ -2768,6 +2793,7 @@ var GLOBE_COLORS = {
   travel:  '#ff6d00',  // Impossible Travel — orange (critical)
   burst:   '#ffaa00',  // Login Burst — yellow (warning)
   outside: '#f44336',  // Outside US — red (foreign login)
+  state:   '#7e57c2',  // Outside Safe States — purple
   failure: '#e53935',  // Login failure — dark red
   success: '#00c800',  // Normal success — green
   other:   '#00a000'   // Other events — darker green
@@ -2979,6 +3005,7 @@ function buildGlobePoints() {
       if (r.evName === 'login_failure') { risk = 'med'; col = GLOBE_COLORS.failure; }
       if (r.outside)                      { risk = 'high'; col = GLOBE_COLORS.outside; }
       if (r.reason === 'Login Burst')     { risk = 'high'; col = GLOBE_COLORS.burst; }
+      if (r.reason === 'Outside Safe States') { risk = 'high'; col = GLOBE_COLORS.state; }
       if (r.reason === 'Impossible Travel'){ risk = 'high'; col = GLOBE_COLORS.travel; }
     }
 
@@ -3009,7 +3036,8 @@ function buildGlobePoints() {
       var p = ll.split(','); var lat = +p[0]; var lng = +p[1];
       if (!isFinite(lat) || !isFinite(lng)) return;
       var col = r.reason === 'Impossible Travel' ? GLOBE_COLORS.travel
-              : r.reason === 'Login Burst'       ? GLOBE_COLORS.burst : GLOBE_COLORS.outside;
+              : r.reason === 'Login Burst'       ? GLOBE_COLORS.burst
+              : r.reason === 'Outside Safe States' ? GLOBE_COLORS.state : GLOBE_COLORS.outside;
       points.push({ lat: lat, lng: lng, label: r.email || '', city: r.details || '',
                     type: r.reason || '', risk: 'high', color: col, count: 1, _row: r, _susp: true });
     });
@@ -3023,9 +3051,11 @@ function buildGlobePoints() {
       var p = ll.split(','); var lat = +p[0]; var lng = +p[1];
       if (!isFinite(lat) || !isFinite(lng)) return;
       var col  = r.reason === 'Impossible Travel' ? '#f44336'
-               : r.reason === 'Login Burst'       ? '#ce93d8' : '#ffaa00';
+               : r.reason === 'Login Burst'       ? '#ce93d8'
+               : r.reason === 'Outside Safe States' ? '#7e57c2' : '#ffaa00';
       var risk = r.reason === 'Impossible Travel' ? 'high'
-               : r.reason === 'Login Burst'       ? 'med'  : 'med';
+               : r.reason === 'Login Burst'       ? 'med'
+               : r.reason === 'Outside Safe States' ? 'high' : 'med';
       points.push({ lat: lat, lng: lng, label: r.email || '', city: r.details || '',
                     type: r.reason || '', risk: risk, color: col, count: 1, _row: r, _susp: true });
     });

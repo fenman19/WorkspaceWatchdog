@@ -72,6 +72,7 @@ function _buildDigestData_(skipSnapshotWrite) {
   const suspRows   = _getRows(shSusp);
   const suspRecent = suspRows.filter(r => new Date(r[0]) >= cutoff24h);
   const outsideUS  = suspRecent.filter(r => r[2] === 'Outside US').length;
+  const outsideSafeStates = suspRecent.filter(r => r[2] === 'Outside Safe States').length;
   const travel     = suspRecent.filter(r => r[2] === 'Impossible Travel').length;
   const bursts     = suspRecent.filter(r => r[2] === 'Login Burst').length;
   const activeRows    = _getRows(shActive);
@@ -120,7 +121,7 @@ function _buildDigestData_(skipSnapshotWrite) {
   return {
     date: Utilities.formatDate(new Date(), CONFIG.TZ, 'MMM d, yyyy - h:mm a z'),
     totalEvents, successCount, failCount, outsideCount, uniqueUsers, failRate,
-    topFails, suspRecent, outsideUS, travel, bursts,
+    topFails, suspRecent, outsideUS, outsideSafeStates, travel, bursts,
     activeCount, activeOutside, topRisk, risingRisk, comparison
   };
 }
@@ -134,6 +135,7 @@ function _buildDigestMessage_(data) {
   msg += 'Outside US: ' + d.outsideCount + '   Unique Users: ' + d.uniqueUsers + '\n';
   msg += '\n*Suspicious Activity*\n';
   msg += 'Outside US: ' + d.outsideUS + '\n';
+  msg += 'Outside Safe States: ' + d.outsideSafeStates + '\n';
   msg += 'Impossible Travel: ' + d.travel + '\n';
   msg += 'Login Bursts: ' + d.bursts + '\n';
   if (d.suspRecent.length) {
@@ -250,6 +252,7 @@ function _buildWeeklyData_() {
   const suspRows = shSusp && shSusp.getLastRow() > 1
     ? _getRows(shSusp).filter(r => new Date(r[0]) >= cutoff7d) : [];
   const outsideUS = suspRows.filter(r => r[2] === 'Outside US').length;
+  const outsideSafeStates = suspRows.filter(r => r[2] === 'Outside Safe States').length;
   const travel    = suspRows.filter(r => r[2] === 'Impossible Travel').length;
   const bursts    = suspRows.filter(r => r[2] === 'Login Burst').length;
   const leakEvents = allRows.filter(r => r[2] === 'account_disabled_password_leak');
@@ -270,12 +273,13 @@ function _buildWeeklyData_() {
       if (!riskMap[email]) riskMap[email] = 0;
       if (r[2] === 'Impossible Travel') riskMap[email] += 20;
       if (r[2] === 'Login Burst')       riskMap[email] += 15;
+      if (r[2] === 'Outside Safe States') riskMap[email] += 10;
     });
     topRisk = Object.entries(riskMap).filter(e => e[1] > 0).sort((a,b) => b[1]-a[1]).slice(0, 10).map(e => ({ email: e[0], score: Math.min(100, e[1]) }));
   } catch(e) {}
   const weekStart = Utilities.formatDate(cutoff7d, CONFIG.TZ, 'MMM d');
   const weekEnd   = Utilities.formatDate(now, CONFIG.TZ, 'MMM d, yyyy');
-  return { weekStart, weekEnd, totalEvents, successCount, failCount, outsideCount, uniqueUsers, failRate, byDay, topFails, topActive, outsideUS, travel, bursts, leakEvents, topRisk, suspRows };
+  return { weekStart, weekEnd, totalEvents, successCount, failCount, outsideCount, uniqueUsers, failRate, byDay, topFails, topActive, outsideUS, outsideSafeStates, travel, bursts, leakEvents, topRisk, suspRows };
 }
 
 function _sendWeeklyEmail_(data) {
@@ -448,7 +452,7 @@ function _buildDigestHtml_(data) {
   const d = data;
   const failColor   = d.failCount > 0   ? '#ef5350' : '#81c995';
   const outsideColor= d.outsideCount > 0 ? '#ff9800' : '#81c995';
-  const suspColor   = (d.outsideUS + d.travel + d.bursts) > 0 ? '#ff9800' : '#81c995';
+  const suspColor   = (d.outsideUS + d.outsideSafeStates + d.travel + d.bursts) > 0 ? '#ff9800' : '#81c995';
 
   function statBox(label, value, color) {
     return '<td style="text-align:center;padding:12px 16px;">' +
@@ -542,11 +546,12 @@ function _buildDigestHtml_(data) {
     statBox('Outside US',   d.outsideCount,  outsideColor),
     statBox('Unique Users', d.uniqueUsers,   '#8ab4f8'),
     statBox('Active Now',   d.activeCount,   '#8ab4f8'),
-    statBox('Suspicious',   d.outsideUS + d.travel + d.bursts, suspColor),
+    statBox('Suspicious',   d.outsideUS + d.outsideSafeStates + d.travel + d.bursts, suspColor),
     '</tr></table></td></tr>',
     '<tr><td><table width="100%" cellpadding="0" cellspacing="0">',
     sectionHeader('Suspicious Activity (Last 24 Hours)'),
     dataRow('Outside US Logins',   d.outsideUS,  d.outsideUS > 0  ? '#ff9800' : '#81c995'),
+    dataRow('Outside Safe States', d.outsideSafeStates, d.outsideSafeStates > 0 ? '#ff9800' : '#81c995'),
     dataRow('Impossible Travel',   d.travel,     d.travel > 0     ? '#ef5350' : '#81c995'),
     dataRow('Login Bursts',        d.bursts,     d.bursts > 0     ? '#ff9800' : '#81c995'),
     '</table></td></tr>',
@@ -671,12 +676,13 @@ function _buildWeeklyHtml_(d) {
     '<tr><td style="padding:0 24px 8px;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#1e3a5f;border-radius:6px;"><tr>',
     statBox('Outside US',   d.outsideCount,  d.outsideCount > 0 ? '#ff9800' : '#81c995'),
     statBox('Unique Users', d.uniqueUsers,   '#8ab4f8'),
-    statBox('Susp Events',  d.outsideUS + d.travel + d.bursts, (d.outsideUS+d.travel+d.bursts) > 0 ? '#ff9800' : '#81c995'),
+    statBox('Susp Events',  d.outsideUS + d.outsideSafeStates + d.travel + d.bursts, (d.outsideUS+d.outsideSafeStates+d.travel+d.bursts) > 0 ? '#ff9800' : '#81c995'),
     statBox('Pass Leaks',   d.leakEvents.length, d.leakEvents.length > 0 ? '#ef5350' : '#81c995'),
     '</tr></table></td></tr>',
     '<tr><td><table width="100%" cellpadding="0" cellspacing="0">',
     sectionHdr('Suspicious Activity'),
     row2('Outside US Logins',  d.outsideUS,  d.outsideUS  > 0 ? '#ff9800' : '#81c995'),
+    row2('Outside Safe States', d.outsideSafeStates, d.outsideSafeStates > 0 ? '#ff9800' : '#81c995'),
     row2('Impossible Travel',  d.travel,     d.travel     > 0 ? '#ef5350' : '#81c995'),
     row2('Login Bursts',       d.bursts,     d.bursts     > 0 ? '#ff9800' : '#81c995'),
     '</table></td></tr>',

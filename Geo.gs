@@ -445,7 +445,7 @@ function getKnownIsps() {
   const ss   = SpreadsheetApp.getActive();
   const sh   = ss.getSheetByName(CONFIG.GEOCACHE);
   const saved = String(CONFIG.MOBILE_ISP_LIST || '');
-  const savedNames = saved.split(',').map(s => s.trim()).filter(Boolean);
+  const savedNames = _splitMobileIspList_(saved);
 
   const counts = {};
   if (sh && sh.getLastRow() > 1) {

@@ -44,6 +44,7 @@ let CONFIG = {
   // Google Chat alerts
   CHAT_ALERT_DEDUPE_HOURS: 12,
   CHAT_ALERT_ON_OUTSIDE_US: true,
+  CHAT_ALERT_ON_OUTSIDE_SAFE_STATES: true,
   CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL: true,
   CHAT_ALERT_ON_BURST: true,
   CHAT_ALERT_ON_PASSWORD_LEAK: true,
@@ -63,9 +64,17 @@ let CONFIG = {
   IP_REP_CACHE_DAYS: 3,
   // Campus IP Filter
   CAMPUS_IP_FILTER: '',
-  // Mobile/cellular IP filtering (Impossible Travel only)
+  // Mobile/cellular IP filtering
   IGNORE_MOBILE_IMPOSSIBLE_TRAVEL: true,
-  MOBILE_ISP_LIST: ''
+  IGNORE_MOBILE_STATE_MONITORING: true,
+  MOBILE_ISP_LIST: '',
+  // U.S. state monitoring — when enabled, successful U.S. logins from any
+  // recognized state NOT listed in SAFE_STATES are treated as suspicious.
+  STATE_MONITORING_ENABLED: false,
+  SAFE_STATES: '',
+  // Timestamp captured when State Monitoring is enabled. Only login events at
+  // or after this time are eligible for Outside Safe States detection.
+  STATE_MONITORING_START_ISO: ''
 };
 
 // Exact-match ISP names (case-insensitive) to treat as mobile/cellular for
@@ -75,11 +84,20 @@ let CONFIG = {
 // Exact match (not substring) is used deliberately: an admin checking
 // "Verizon Business" should not also silently suppress an unrelated ISP that
 // merely contains the word "Verizon".
+function _splitMobileIspList_(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [];
+  // Pipe is canonical because commas are valid characters in ISP names.
+  // Fall back to the legacy comma format so existing deployments keep working
+  // until the list is next saved from Settings.
+  const parts = raw.indexOf('|') >= 0 ? raw.split('|') : raw.split(',');
+  return parts.map(s => s.trim()).filter(Boolean);
+}
+
 function _mobileIspSet_() {
-  const raw = String(CONFIG.MOBILE_ISP_LIST || '');
   const set = new Set();
-  raw.split(',').forEach(s => {
-    const v = s.trim().toLowerCase();
+  _splitMobileIspList_(CONFIG.MOBILE_ISP_LIST).forEach(s => {
+    const v = s.toLowerCase();
     if (v) set.add(v);
   });
   return set;
@@ -89,6 +107,66 @@ function _isMobileIsp_(isp) {
   if (!isp) return false;
   if (!CONFIG.MOBILE_ISP_LIST) return false;
   return _mobileIspSet_().has(String(isp).trim().toLowerCase());
+}
+
+// Normalize U.S. state/region values returned by different geo providers.
+// ipapi.co generally returns two-letter codes, while IPinfo/freeipapi may return
+// full state names. Unknown/blank regions intentionally return an empty string
+// so incomplete geo data does not create notification noise.
+const US_STATE_NAME_TO_CODE = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+  'colorado':'CO','connecticut':'CT','delaware':'DE','florida':'FL','georgia':'GA',
+  'hawaii':'HI','idaho':'ID','illinois':'IL','indiana':'IN','iowa':'IA','kansas':'KS',
+  'kentucky':'KY','louisiana':'LA','maine':'ME','maryland':'MD','massachusetts':'MA',
+  'michigan':'MI','minnesota':'MN','mississippi':'MS','missouri':'MO','montana':'MT',
+  'nebraska':'NE','nevada':'NV','new hampshire':'NH','new jersey':'NJ','new mexico':'NM',
+  'new york':'NY','north carolina':'NC','north dakota':'ND','ohio':'OH','oklahoma':'OK',
+  'oregon':'OR','pennsylvania':'PA','rhode island':'RI','south carolina':'SC',
+  'south dakota':'SD','tennessee':'TN','texas':'TX','utah':'UT','vermont':'VT',
+  'virginia':'VA','washington':'WA','west virginia':'WV','wisconsin':'WI','wyoming':'WY',
+  'district of columbia':'DC','washington, d.c.':'DC','washington dc':'DC'
+};
+const US_STATE_CODES = new Set(Object.keys(US_STATE_NAME_TO_CODE).map(k => US_STATE_NAME_TO_CODE[k]));
+
+function _normalizeUsStateCode_(region) {
+  const raw = String(region || '').trim();
+  if (!raw) return '';
+  const upper = raw.toUpperCase();
+  if (US_STATE_CODES.has(upper)) return upper;
+  return US_STATE_NAME_TO_CODE[raw.toLowerCase()] || '';
+}
+
+function _splitSafeStateList_(rawValue) {
+  const raw = String(rawValue || '').trim();
+  if (!raw) return [];
+  return raw.split(/[|,;\n]+/).map(s => _normalizeUsStateCode_(s)).filter(Boolean);
+}
+
+function _safeStateSet_() {
+  return new Set(_splitSafeStateList_(CONFIG.SAFE_STATES));
+}
+
+function _stateMonitoringStartMs_() {
+  const raw = String(CONFIG.STATE_MONITORING_START_ISO || '').trim();
+  if (!raw) return NaN;
+  const ms = new Date(raw).getTime();
+  return isFinite(ms) ? ms : NaN;
+}
+
+function _isStateMonitoringEventEligible_(eventTs) {
+  if (!CONFIG.STATE_MONITORING_ENABLED) return false;
+  const startMs = _stateMonitoringStartMs_();
+  if (!isFinite(startMs)) return false;
+  const eventMs = eventTs instanceof Date ? eventTs.getTime() : new Date(eventTs).getTime();
+  return isFinite(eventMs) && eventMs >= startMs;
+}
+
+function _isOutsideSafeStates_(country, region, eventTs) {
+  if (!_isStateMonitoringEventEligible_(eventTs)) return false;
+  if (String(country || '').trim().toUpperCase() !== 'US') return false;
+  const stateCode = _normalizeUsStateCode_(region);
+  if (!stateCode) return false;
+  return !_safeStateSet_().has(stateCode);
 }
 
 // ===== Cache Indexes (large-domain performance) ==============================
@@ -197,6 +275,7 @@ function _applyRuntimeConfig_() {
   CONFIG.BULK_OU_LOAD              = bool('BULK_OU_LOAD',              CONFIG.BULK_OU_LOAD);
   CONFIG.CHAT_ALERT_DEDUPE_HOURS   = num ('CHAT_ALERT_DEDUPE_HOURS',   CONFIG.CHAT_ALERT_DEDUPE_HOURS);
   CONFIG.CHAT_ALERT_ON_OUTSIDE_US  = bool('CHAT_ALERT_ON_OUTSIDE_US',  CONFIG.CHAT_ALERT_ON_OUTSIDE_US);
+  CONFIG.CHAT_ALERT_ON_OUTSIDE_SAFE_STATES = bool('CHAT_ALERT_ON_OUTSIDE_SAFE_STATES', CONFIG.CHAT_ALERT_ON_OUTSIDE_SAFE_STATES);
   CONFIG.CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL = bool('CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL', CONFIG.CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL);
   CONFIG.CHAT_ALERT_ON_BURST       = bool('CHAT_ALERT_ON_BURST',       CONFIG.CHAT_ALERT_ON_BURST);
   CONFIG.CHAT_ALERT_ON_PASSWORD_LEAK     = bool('CHAT_ALERT_ON_PASSWORD_LEAK',     CONFIG.CHAT_ALERT_ON_PASSWORD_LEAK);
@@ -214,7 +293,21 @@ function _applyRuntimeConfig_() {
   CONFIG.IP_REP_CACHE_DAYS               = num ('IP_REP_CACHE_DAYS',               CONFIG.IP_REP_CACHE_DAYS);
   CONFIG.CAMPUS_IP_FILTER                = str ('CAMPUS_IP_FILTER',                CONFIG.CAMPUS_IP_FILTER);
   CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL  = bool('IGNORE_MOBILE_IMPOSSIBLE_TRAVEL',  CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL);
+  CONFIG.IGNORE_MOBILE_STATE_MONITORING   = bool('IGNORE_MOBILE_STATE_MONITORING',   CONFIG.IGNORE_MOBILE_STATE_MONITORING);
   CONFIG.MOBILE_ISP_LIST                  = str ('MOBILE_ISP_LIST',                 CONFIG.MOBILE_ISP_LIST);
+  CONFIG.STATE_MONITORING_ENABLED         = bool('STATE_MONITORING_ENABLED',         CONFIG.STATE_MONITORING_ENABLED);
+  CONFIG.SAFE_STATES                      = str ('SAFE_STATES',                      CONFIG.SAFE_STATES);
+  CONFIG.STATE_MONITORING_START_ISO       = str ('STATE_MONITORING_START_ISO',       CONFIG.STATE_MONITORING_START_ISO);
+
+  // Upgrade safety: older State Monitoring builds did not have a start marker
+  // and would retroactively flag every retained Main row. If this deployment
+  // is already enabled but has no marker, establish one now so only events
+  // from this code activation forward are considered by the state rule.
+  if (CONFIG.STATE_MONITORING_ENABLED && !CONFIG.STATE_MONITORING_START_ISO) {
+    const nowIso = new Date().toISOString();
+    p.setProperty('STATE_MONITORING_START_ISO', nowIso);
+    CONFIG.STATE_MONITORING_START_ISO = nowIso;
+  }
 }
 
 // ===== Cache Reset ============================================================
@@ -438,7 +531,7 @@ function _deleteMyTriggers_() {
   try {
     const me = ScriptApp.getProjectTriggers();
     me.forEach(function(t) {
-      if (['scheduledSync','weeklyReset','cacheWarmup','dailyDigest','autoRetryFailedGeo'].includes(t.getHandlerFunction())) {
+      if (['scheduledSync','weeklyReset','cacheWarmup','dailyDigest','weeklyReport','autoRetryFailedGeo'].includes(t.getHandlerFunction())) {
         ScriptApp.deleteTrigger(t);
       }
     });

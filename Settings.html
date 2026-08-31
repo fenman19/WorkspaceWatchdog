@@ -46,6 +46,8 @@
     .ou-empty { color: #999; font-size: 12px; font-style: italic; }
     .ou-actions { display: flex; gap: 8px; margin-top: 6px; }
     .ou-actions button { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid #dadce0; background: #f1f3f4; color: #444; cursor: pointer; font-weight: 600; }
+    .state-picker { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:2px 8px; max-height:190px; }
+    .state-picker label { white-space:nowrap; }
   </style>
 </head>
 <body>
@@ -165,12 +167,13 @@
       <div class="hint" style="margin-top:4px; margin-bottom:10px;">
         Suppresses Impossible Travel alerts when either login's ISP matches a checked carrier below.
         Mobile and carrier-grade-NAT networks frequently reassign IPs across cell towers, which can
-        falsely look like cross-country travel. Outside-US and Login Burst detection are unaffected.
+        falsely look like cross-country travel. The same carrier list can also be used by State Monitoring below.
+        Outside-US and Login Burst detection are unaffected.
       </div>
 
       <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">
         Carrier / ISP list
-        <span style="font-weight:normal; color:#5f6368;">(pulled from your GeoCache — check any ISP to ignore for Impossible Travel)</span>
+        <span style="font-weight:normal; color:#5f6368;">(pulled from your GeoCache — shared by Impossible Travel and State Monitoring exclusions)</span>
       </label>
       <div class="ou-picker" id="mobileIspPicker" style="max-height:200px;">
         <span class="ou-empty">Loading ISPs from cache...</span>
@@ -182,11 +185,55 @@
       </div>
       <div style="margin-top:10px;">
         <label for="mobileIspListRaw" style="font-size:12px; font-weight:600; color:#5f6368;">
-          Or type ISP names manually (comma-separated, exact match):
+          Or type ISP names manually (pipe-separated | exact match):
         </label>
         <input id="mobileIspListRaw" type="text" class="wide"
-               placeholder="AT&amp;T Enterprises, LLC,Verizon Business"
+               placeholder="AT&amp;T Enterprises, LLC|Verizon Business"
                style="margin-top:4px; font-family: monospace;">
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ── State Monitoring ─────────────────────────────── -->
+  <div class="card">
+    <div class="card-title collapsible" onclick="toggleCard(this)">
+      U.S. State Monitoring <span class="caret">&#9660;</span>
+    </div>
+    <div class="card-body" style="max-height:850px;">
+      <div class="checkbox-row" style="margin-top:0;">
+        <input id="stateMonitoringEnabled" type="checkbox">
+        <label for="stateMonitoringEnabled">Flag successful U.S. logins outside Safe States</label>
+      </div>
+      <div class="hint" style="margin-top:4px; margin-bottom:10px;">
+        When enabled, successful U.S. logins are suspicious unless their state is selected below.
+        Outside-US monitoring remains separate. If a geo provider cannot identify a state, the login is not
+        flagged by this rule.
+      </div>
+
+      <label style="font-size:13px; font-weight:600; display:block; margin-bottom:6px;">
+        Safe States
+        <span style="font-weight:normal; color:#5f6368;">(select the few states where logins are normally expected)</span>
+      </label>
+      <div class="ou-picker state-picker" id="statePicker"></div>
+      <div class="ou-actions">
+        <button onclick="clearSafeStates()">Clear all</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label for="safeStatesRaw" style="font-size:12px; font-weight:600; color:#5f6368;">
+          Or type state codes manually (comma-separated):
+        </label>
+        <input id="safeStatesRaw" type="text" class="wide"
+               placeholder="AR,TX,OK" style="margin-top:4px; font-family:monospace;">
+      </div>
+
+      <div class="checkbox-row" style="margin-top:12px;">
+        <input id="ignoreMobileStateMonitoring" type="checkbox" checked>
+        <label for="ignoreMobileStateMonitoring">Ignore selected carrier IPs for State Monitoring</label>
+      </div>
+      <div class="hint" style="margin-top:4px;">
+        Uses the same Carrier / ISP list in Suspicious Thresholds. This suppresses only the state rule;
+        Outside-US, Login Burst, Password Leak, and other alerts remain independent.
       </div>
     </div>
   </div>
@@ -238,6 +285,10 @@
       <div class="checkbox-row">
         <input id="chatAlertOnOutsideUS" type="checkbox" checked>
         <label for="chatAlertOnOutsideUS">Alert on Outside US logins</label>
+      </div>
+      <div class="checkbox-row">
+        <input id="chatAlertOnOutsideSafeStates" type="checkbox" checked>
+        <label for="chatAlertOnOutsideSafeStates">Alert on logins outside Safe States</label>
       </div>
       <div class="checkbox-row">
         <input id="chatAlertOnImpossibleTravel" type="checkbox" checked>
@@ -425,6 +476,7 @@
     function renderOUPicker(ous, currentCSV) {
       _loadedOUs = ous || [];
       var picker   = document.getElementById('ouPicker');
+      // OU paths remain comma-separated; this matches _isMonitoredOU_() server-side.
       var selected = new Set(
         (currentCSV || '').split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
       );
@@ -482,8 +534,12 @@
     function renderMobileIspPicker(isps, currentCSV) {
       _loadedIsps = isps || [];
       var picker   = document.getElementById('mobileIspPicker');
+      // Pipe is canonical because commas are valid inside ISP names. Accept the
+      // old comma format for backward compatibility until the setting is saved.
+      var rawSaved = currentCSV || '';
+      var savedParts = rawSaved.indexOf('|') >= 0 ? rawSaved.split('|') : rawSaved.split(',');
       var selected = new Set(
-        (currentCSV || '').split(',').map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
+        savedParts.map(function(s) { return s.trim().toLowerCase(); }).filter(Boolean)
       );
       if (!_loadedIsps.length) {
         picker.innerHTML = '<span class="ou-empty">No ISPs found yet. Run a sync first, then click &#8635; Refresh list.</span>';
@@ -491,11 +547,14 @@
       }
       picker.innerHTML = _loadedIsps.map(function(isp) {
         var checked = selected.has(isp.toLowerCase()) ? 'checked' : '';
-        var escaped = isp.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
-                          .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        // Keep the checkbox value semantically identical to the ISP name; only
+        // escape what is required for the attribute/display HTML contexts.
+        var attrVal = isp.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+                         .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        var display = isp.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return '<label>' +
-          '<input type="checkbox" value="' + escaped + '" ' + checked + ' onchange="syncMobileIspRawFromPicker()">' +
-          escaped + '</label>';
+          '<input type="checkbox" value="' + attrVal + '" ' + checked + ' onchange="syncMobileIspRawFromPicker()">' +
+          display + '</label>';
       }).join('');
     }
 
@@ -503,7 +562,7 @@
       var checked = Array.from(
         document.querySelectorAll('#mobileIspPicker input[type=checkbox]:checked')
       ).map(function(cb) { return cb.value; });
-      document.getElementById('mobileIspListRaw').value = checked.join(',');
+      document.getElementById('mobileIspListRaw').value = checked.join('|');
     }
 
     function syncMobileIspPickerFromRaw() {
@@ -535,9 +594,55 @@
         .getKnownIsps();
     }
 
+    // ── Safe State picker helpers ──────────────────────────────────────────────
+    var US_STATES = [
+      ['AL','Alabama'],['AK','Alaska'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],
+      ['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],
+      ['HI','Hawaii'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],
+      ['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],
+      ['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],
+      ['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],
+      ['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],
+      ['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],
+      ['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],
+      ['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming'],
+      ['DC','District of Columbia']
+    ];
+
+    function parseSafeStateCodes(raw) {
+      var valid = new Set(US_STATES.map(function(x) { return x[0]; }));
+      return String(raw || '').toUpperCase().split(/[|,;\s]+/)
+        .map(function(s) { return s.trim(); }).filter(function(s) { return valid.has(s); });
+    }
+
+    function renderStatePicker(current) {
+      var selected = new Set(parseSafeStateCodes(current));
+      document.getElementById('statePicker').innerHTML = US_STATES.map(function(st) {
+        var checked = selected.has(st[0]) ? 'checked' : '';
+        return '<label><input type="checkbox" value="' + st[0] + '" ' + checked +
+          ' onchange="syncSafeStatesRawFromPicker()">' + st[0] + ' — ' + st[1] + '</label>';
+      }).join('');
+    }
+
+    function syncSafeStatesRawFromPicker() {
+      var selected = Array.from(document.querySelectorAll('#statePicker input[type=checkbox]:checked'))
+        .map(function(cb) { return cb.value; });
+      document.getElementById('safeStatesRaw').value = selected.join(',');
+    }
+
+    function syncStatePickerFromRaw() {
+      renderStatePicker(document.getElementById('safeStatesRaw').value);
+    }
+
+    function clearSafeStates() {
+      document.querySelectorAll('#statePicker input[type=checkbox]').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('safeStatesRaw').value = '';
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       document.getElementById('monitorOUsRaw').addEventListener('input', syncPickerFromRaw);
       document.getElementById('mobileIspListRaw').addEventListener('input', syncMobileIspPickerFromRaw);
+      document.getElementById('safeStatesRaw').addEventListener('input', syncStatePickerFromRaw);
     });
 
     // ── Get full form ─────────────────────────────────────────────────────────
@@ -557,7 +662,10 @@
         impossibleMinMiles:          document.getElementById('impossibleMinMiles').value,
         impossibleMph:               document.getElementById('impossibleMph').value,
         ignoreMobileImpossibleTravel: document.getElementById('ignoreMobileImpossibleTravel').checked,
+        ignoreMobileStateMonitoring: document.getElementById('ignoreMobileStateMonitoring').checked,
         mobileIspList:               document.getElementById('mobileIspListRaw').value.trim(),
+        stateMonitoringEnabled:      document.getElementById('stateMonitoringEnabled').checked,
+        safeStates:                  document.getElementById('safeStatesRaw').value.trim(),
         ipinfoToken:                 document.getElementById('ipinfoToken').value,
         trimAfterSync:               document.getElementById('trimAfterSync').checked,
         activeIncludeToken:          document.getElementById('activeIncludeToken').checked,
@@ -566,6 +674,7 @@
         chatWebhookUrl:              document.getElementById('chatWebhookUrl').value.trim(),
         chatAlertDedupeHours:        document.getElementById('chatAlertDedupeHours').value,
         chatAlertOnOutsideUS:        document.getElementById('chatAlertOnOutsideUS').checked,
+        chatAlertOnOutsideSafeStates: document.getElementById('chatAlertOnOutsideSafeStates').checked,
         chatAlertOnImpossibleTravel: document.getElementById('chatAlertOnImpossibleTravel').checked,
         chatAlertOnBurst:            document.getElementById('chatAlertOnBurst').checked,
         chatAlertOnPasswordLeak:     document.getElementById('chatAlertOnPasswordLeak').checked,
@@ -598,6 +707,10 @@
       document.getElementById('impossibleMinMiles').value         = cfg.impossibleMinMiles         || 50;
       document.getElementById('impossibleMph').value              = cfg.impossibleMph              || 500;
       document.getElementById('ignoreMobileImpossibleTravel').checked = (cfg.ignoreMobileImpossibleTravel !== false);
+      document.getElementById('ignoreMobileStateMonitoring').checked = (cfg.ignoreMobileStateMonitoring !== false);
+      document.getElementById('stateMonitoringEnabled').checked = !!cfg.stateMonitoringEnabled;
+      document.getElementById('safeStatesRaw').value = cfg.safeStates || '';
+      renderStatePicker(cfg.safeStates || '');
       // IPInfo token status indicator — never pre-fill the actual secret
       var ipinfoField = document.getElementById('ipinfoToken');
       var its         = document.getElementById('ipinfoTokenStatus');
@@ -622,6 +735,7 @@
       document.getElementById('digestComparison').checked         = cfg.digestComparison !== false;
       document.getElementById('chatAlertDedupeHours').value       = cfg.chatAlertDedupeHours       || 12;
       document.getElementById('chatAlertOnOutsideUS').checked     = cfg.chatAlertOnOutsideUS !== false;
+      document.getElementById('chatAlertOnOutsideSafeStates').checked = cfg.chatAlertOnOutsideSafeStates !== false;
       document.getElementById('chatAlertOnImpossibleTravel').checked = cfg.chatAlertOnImpossibleTravel !== false;
       document.getElementById('chatAlertOnBurst').checked         = cfg.chatAlertOnBurst !== false;
       document.getElementById('chatAlertOnPasswordLeak').checked  = cfg.chatAlertOnPasswordLeak !== false;
@@ -701,6 +815,7 @@
           url,
           document.getElementById('chatAlertDedupeHours').value,
           document.getElementById('chatAlertOnOutsideUS').checked,
+          document.getElementById('chatAlertOnOutsideSafeStates').checked,
           document.getElementById('chatAlertOnImpossibleTravel').checked,
           document.getElementById('chatAlertOnBurst').checked,
           document.getElementById('chatAlertScheduledOnly').checked

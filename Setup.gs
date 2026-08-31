@@ -33,7 +33,7 @@ function installWorkspaceWatchdog() {
     INSTALL_COMPLETE: 'true',
     INSTALL_VERSION: WW_MONITOR_VERSION,
     INSTALL_TIMESTAMP: new Date().toISOString()
-  }, true);
+  });
 
   if (CONFIG.BULK_OU_LOAD) {
     SpreadsheetApp.getActive().toast('Pre-loading OU cache...', 'Install', 5);
@@ -87,7 +87,7 @@ function fastInstallWorkspaceWatchdog(seedMinutes) {
       INSTALL_COMPLETE: 'true',
       INSTALL_VERSION: WW_MONITOR_VERSION,
       INSTALL_TIMESTAMP: new Date().toISOString()
-    }, true);
+    });
 
     p.deleteProperty('lastRunISO');
 
@@ -118,8 +118,8 @@ function runFirstSyncOnly() {
 function showSetupWizard() {
   const html = HtmlService.createHtmlOutputFromFile('SetupWizard')
     .setTitle('Workspace Watchdog — Setup Wizard')
-    .setWidth(680)
-    .setHeight(780);
+    .setWidth(1050)
+    .setHeight(880);
   SpreadsheetApp.getUi().showModalDialog(html, 'Workspace Watchdog — Setup Wizard');
 }
 
@@ -151,15 +151,30 @@ function getSetupStatus() {
   const required = [CONFIG.MAIN, CONFIG.GEOCACHE, CONFIG.OU_CACHE, CONFIG.ACTIVE,
                     CONFIG.SUSPICIOUS, CONFIG.DIAG, CONFIG.ARCHIVE, 'Setup'];
   const missingSheets = required.filter(name => !ss.getSheetByName(name));
-  const triggers = ScriptApp.getProjectTriggers().filter(t =>
-    ['scheduledSync', 'weeklyReset', 'dailyDigest'].includes(t.getHandlerFunction())
+  const expectedTriggerHandlers = [
+    'scheduledSync',
+    'weeklyReset',
+    'cacheWarmup',
+    'dailyDigest',
+    'weeklyReport',
+    'autoRetryFailedGeo'
+  ];
+  const projectTriggers = ScriptApp.getProjectTriggers();
+  const installedTriggerHandlers = projectTriggers.map(t => t.getHandlerFunction());
+  const watchdogTriggers = projectTriggers.filter(t =>
+    expectedTriggerHandlers.includes(t.getHandlerFunction())
+  );
+  const missingTriggers = expectedTriggerHandlers.filter(name =>
+    !installedTriggerHandlers.includes(name)
   );
   return {
     installed: p.getProperty('INSTALL_COMPLETE') === 'true',
     installVersion: p.getProperty('INSTALL_VERSION') || '',
     installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || '',
     lastRunISO: p.getProperty('lastRunISO') || '',
-    triggerCount: triggers.length,
+    triggerCount: watchdogTriggers.length,
+    expectedTriggerCount: expectedTriggerHandlers.length,
+    missingTriggers: missingTriggers,
     missingSheets: missingSheets,
     config: getWizardConfig()
   };
@@ -205,11 +220,13 @@ function getWizardConfig() {
     cacheWarmupBatchUser: CONFIG.CACHE_WARMUP_BATCH_USER,
     cacheWarmupIntervalMinutes: CONFIG.CACHE_WARMUP_INTERVAL_MINUTES,
     ipinfoTokenSet: !!p.getProperty('IPINFO_TOKEN'),
+    abuseIpDbKeySet: !!p.getProperty('ABUSEIPDB_KEY'),
     monitorOUs: CONFIG.MONITOR_OUS || '',
     bulkOuLoad: CONFIG.BULK_OU_LOAD !== false,
     chatWebhookSet: !!(PropertiesService.getScriptProperties().getProperty('CHAT_WEBHOOK_URL')),
     chatAlertDedupeHours: CONFIG.CHAT_ALERT_DEDUPE_HOURS,
     chatAlertOnOutsideUS: CONFIG.CHAT_ALERT_ON_OUTSIDE_US,
+    chatAlertOnOutsideSafeStates: CONFIG.CHAT_ALERT_ON_OUTSIDE_SAFE_STATES,
     chatAlertOnImpossibleTravel: CONFIG.CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL,
     chatAlertOnBurst: CONFIG.CHAT_ALERT_ON_BURST,
     chatAlertOnPasswordLeak:   CONFIG.CHAT_ALERT_ON_PASSWORD_LEAK,
@@ -224,7 +241,10 @@ function getWizardConfig() {
     digestHour:       CONFIG.DIGEST_HOUR,
     campusIpFilter:   CONFIG.CAMPUS_IP_FILTER || '',
     ignoreMobileImpossibleTravel: CONFIG.IGNORE_MOBILE_IMPOSSIBLE_TRAVEL,
+    ignoreMobileStateMonitoring: CONFIG.IGNORE_MOBILE_STATE_MONITORING,
     mobileIspList: CONFIG.MOBILE_ISP_LIST || '',
+    stateMonitoringEnabled: CONFIG.STATE_MONITORING_ENABLED,
+    safeStates: CONFIG.SAFE_STATES || '',
     installed: p.getProperty('INSTALL_COMPLETE') === 'true',
     installVersion: p.getProperty('INSTALL_VERSION') || '',
     installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || '',
@@ -241,6 +261,19 @@ function saveWizardConfig(form) {
   const p = PropertiesService.getScriptProperties();
   const cleanNum = (v, fallback) => { const n = Number(v); return isFinite(n) ? String(n) : String(fallback); };
   const cleanBool = (v) => String(!!v);
+  const wasStateMonitoringEnabled = String(p.getProperty('STATE_MONITORING_ENABLED') || '').toLowerCase() === 'true';
+  const stateMonitoringEnabled = !!form.stateMonitoringEnabled;
+  const existingStateStart = String(p.getProperty('STATE_MONITORING_START_ISO') || '').trim();
+  let stateMonitoringStartIso = '';
+  if (stateMonitoringEnabled) {
+    stateMonitoringStartIso = (!wasStateMonitoringEnabled || !existingStateStart)
+      ? new Date().toISOString()
+      : existingStateStart;
+  }
+  const safeStates = Array.from(new Set(_splitSafeStateList_(form.safeStates || ''))).sort();
+  if (form.stateMonitoringEnabled && safeStates.length === 0) {
+    throw new Error('State Monitoring is enabled, but no Safe States are selected. Select at least one Safe State or turn State Monitoring off.');
+  }
 
   p.setProperties({
     TZ: String(form.tz || 'America/Chicago'),
@@ -266,6 +299,7 @@ function saveWizardConfig(form) {
     BULK_OU_LOAD:   cleanBool(form.bulkOuLoad),
     CHAT_ALERT_DEDUPE_HOURS:         cleanNum(form.chatAlertDedupeHours, 12),
     CHAT_ALERT_ON_OUTSIDE_US:        cleanBool(form.chatAlertOnOutsideUS),
+    CHAT_ALERT_ON_OUTSIDE_SAFE_STATES: cleanBool(form.chatAlertOnOutsideSafeStates),
     CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL: cleanBool(form.chatAlertOnImpossibleTravel),
     CHAT_ALERT_ON_BURST:             cleanBool(form.chatAlertOnBurst),
     CHAT_ALERT_ON_PASSWORD_LEAK:     cleanBool(form.chatAlertOnPasswordLeak),
@@ -280,13 +314,20 @@ function saveWizardConfig(form) {
     DIGEST_HOUR:                     cleanNum(form.digestHour, 7),
     CAMPUS_IP_FILTER:                String(form.campusIpFilter || '').trim(),
     IGNORE_MOBILE_IMPOSSIBLE_TRAVEL: cleanBool(form.ignoreMobileImpossibleTravel),
-    MOBILE_ISP_LIST:                 String(form.mobileIspList || '').trim()
+    IGNORE_MOBILE_STATE_MONITORING:  cleanBool(form.ignoreMobileStateMonitoring),
+    MOBILE_ISP_LIST:                 String(form.mobileIspList || '').trim(),
+    STATE_MONITORING_ENABLED:        cleanBool(form.stateMonitoringEnabled),
+    SAFE_STATES:                     safeStates.join(','),
+    STATE_MONITORING_START_ISO:      stateMonitoringStartIso
   });
   if (form.chatWebhookUrl && form.chatWebhookUrl.trim()) {
     PropertiesService.getScriptProperties().setProperty('CHAT_WEBHOOK_URL', form.chatWebhookUrl.trim());
   }
   if (form.ipinfoToken && form.ipinfoToken.trim()) {
     PropertiesService.getScriptProperties().setProperty('IPINFO_TOKEN', form.ipinfoToken.trim());
+  }
+  if (form.abuseIpDbKey && form.abuseIpDbKey.trim()) {
+    PropertiesService.getScriptProperties().setProperty('ABUSEIPDB_KEY', form.abuseIpDbKey.trim());
   }
   _applyRuntimeConfig_();
   _ensureSetupSheet_();
@@ -313,9 +354,14 @@ function testAdminAccess() {
     AdminReports.Activities.list('all', 'login', {
       startTime: start.toISOString(), endTime: now.toISOString(), maxResults: 1
     });
-    return { ok: true, message: 'Admin Reports access looks good.' };
+    return {
+      ok: true,
+      code: 'ok',
+      title: 'Admin Reports API ready',
+      message: 'Workspace Watchdog can read login audit events.'
+    };
   } catch (e) {
-    return { ok: false, message: 'Admin Reports test failed: ' + (e && e.message ? e.message : e) };
+    return _buildApiTestFailure_('reports', e);
   }
 }
 
@@ -324,10 +370,117 @@ function testDirectoryAccess() {
     const me = Session.getActiveUser().getEmail();
     if (me) { try { AdminDirectory.Users.get(me); } catch (_) {} }
     AdminDirectory.Users.list({ customer: 'my_customer', maxResults: 1, orderBy: 'email' });
-    return { ok: true, message: 'Admin Directory access looks good.' };
+    return {
+      ok: true,
+      code: 'ok',
+      title: 'Admin Directory API ready',
+      message: 'Workspace Watchdog can read the user directory and organizational units.'
+    };
   } catch (e) {
-    return { ok: false, message: 'Admin Directory test failed: ' + (e && e.message ? e.message : e) };
+    return _buildApiTestFailure_('directory', e);
   }
+}
+
+function _buildApiTestFailure_(apiName, error) {
+  const raw = String(error && error.message ? error.message : error || 'Unknown error');
+  const lower = raw.toLowerCase();
+  let code = 'unknown';
+  let title = 'API test failed';
+  let steps = [];
+
+  if (lower.includes('not defined') || lower.includes('is not defined')) {
+    code = 'advanced_service_missing';
+    title = 'Advanced service is not available';
+    steps = [
+      'Open the Apps Script editor.',
+      'In the left panel, open Services and confirm Admin SDK API is listed.',
+      'Return to this wizard and click Retest.'
+    ];
+  } else if (lower.includes('access not configured') || lower.includes('has not been used') || lower.includes('disabled')) {
+    code = 'cloud_api_disabled';
+    title = 'Admin SDK API is disabled';
+    steps = [
+      'Open the Google Cloud API page from the link below.',
+      'Enable Admin SDK API for this script project.',
+      'Wait about one minute, then return and click Retest.'
+    ];
+  } else if (lower.includes('authorization') || lower.includes('permission') || lower.includes('insufficient') || lower.includes('forbidden') || lower.includes('not authorized')) {
+    code = 'permission_denied';
+    title = 'Administrator permission is required';
+    steps = [
+      'Confirm you are signed in with a Google Workspace administrator account.',
+      'Run the test again and approve any Google authorization prompt.',
+      'If your organization restricts Apps Script, ask a super administrator to allow this customer-owned script.'
+    ];
+  } else {
+    steps = [
+      'Confirm you are signed in with a Google Workspace administrator account.',
+      'Open the Apps Script editor and verify Admin SDK API appears under Services.',
+      'Retest. If it still fails, copy the diagnostic text for support.'
+    ];
+  }
+
+  return {
+    ok: false,
+    api: apiName,
+    code: code,
+    title: title,
+    message: raw,
+    steps: steps,
+    links: getSetupGuideLinks()
+  };
+}
+
+function getSetupGuideLinks() {
+  const scriptId = ScriptApp.getScriptId();
+  const editorBase = 'https://script.google.com/home/projects/' + encodeURIComponent(scriptId);
+  return {
+    scriptEditor: editorBase + '/edit',
+    projectSettings: editorBase + '/settings',
+    deployments: editorBase + '/deployments',
+    cloudProjects: 'https://console.cloud.google.com/cloud-resource-manager',
+    oauthOverview: 'https://console.cloud.google.com/auth/overview',
+    oauthAudience: 'https://console.cloud.google.com/auth/audience',
+    oauthDataAccess: 'https://console.cloud.google.com/auth/scopes',
+    cloudProjectHelp: 'https://developers.google.com/apps-script/guides/cloud-platform-projects#determine_the_id_&_number_of_a_standard_cloud_project',
+    adminSdkApi: 'https://console.cloud.google.com/apis/library/admin.googleapis.com',
+    appsScriptApi: 'https://console.cloud.google.com/apis/library/script.googleapis.com',
+    appsScriptDashboard: 'https://script.google.com/home/usersettings',
+    appsScriptApiHelp: 'https://developers.google.com/apps-script/api/how-tos/enable',
+    scriptPropertiesHelp: 'https://developers.google.com/apps-script/guides/properties',
+    ipInfo: 'https://ipinfo.io/signup',
+    abuseIpDb: 'https://www.abuseipdb.com/register',
+    support: 'https://workspacewatchdog.com'
+  };
+}
+
+function getInstallationHealth() {
+  const status = getSetupStatus();
+  const p = PropertiesService.getScriptProperties();
+  const reports = testAdminAccess();
+  const directory = testDirectoryAccess();
+  const deploymentId = p.getProperty('DEPLOYMENT_ID') || '';
+
+  const checks = [
+    { id: 'license', label: 'License activated', required: true, ok: !!p.getProperty('WW_LICENSE_KEY'), detail: p.getProperty('WW_LICENSE_TIER') || 'No license token stored' },
+    { id: 'reports', label: 'Admin Reports API', required: true, ok: !!reports.ok, detail: reports.ok ? reports.message : reports.title },
+    { id: 'directory', label: 'Admin Directory API', required: true, ok: !!directory.ok, detail: directory.ok ? directory.message : directory.title },
+    { id: 'sheets', label: 'Required sheets', required: true, ok: status.missingSheets.length === 0, detail: status.missingSheets.length ? 'Missing: ' + status.missingSheets.join(', ') : 'All required sheets are present' },
+    { id: 'triggers', label: 'Scheduled triggers', required: true, ok: status.missingTriggers.length === 0, detail: status.missingTriggers.length ? 'Missing: ' + status.missingTriggers.join(', ') : status.triggerCount + ' of ' + status.expectedTriggerCount + ' installed' },
+    { id: 'firstSync', label: 'Initial sync cursor', required: true, ok: !!status.lastRunISO, detail: status.lastRunISO || 'No completed sync detected yet' },
+    { id: 'mapDeployment', label: 'Full-screen map deployment', required: false, ok: !!deploymentId, detail: deploymentId ? 'Deployment ID configured' : 'Optional — not configured' }
+  ];
+
+  const requiredChecks = checks.filter(c => c.required);
+  return {
+    ok: requiredChecks.every(c => c.ok),
+    installed: status.installed,
+    version: status.installVersion || WW_MONITOR_VERSION,
+    checks: checks,
+    links: getSetupGuideLinks(),
+    reportsResult: reports,
+    directoryResult: directory
+  };
 }
 
 function _ensureSetupSheet_() {
@@ -368,7 +521,10 @@ function _saveSetupSummaryToSheet_() {
     ['IMPOSSIBLE_MIN_MILES', cfg.impossibleMinMiles],
     ['IMPOSSIBLE_MPH', cfg.impossibleMph],
     ['IGNORE_MOBILE_IMPOSSIBLE_TRAVEL', cfg.ignoreMobileImpossibleTravel ? 'TRUE' : 'FALSE'],
+    ['IGNORE_MOBILE_STATE_MONITORING', cfg.ignoreMobileStateMonitoring ? 'TRUE' : 'FALSE'],
     ['MOBILE_ISP_LIST', cfg.mobileIspList || '(none selected)'],
+    ['STATE_MONITORING_ENABLED', cfg.stateMonitoringEnabled ? 'TRUE' : 'FALSE'],
+    ['SAFE_STATES', cfg.safeStates || '(none selected)'],
     ['GEO_TTL_HOURS', cfg.geoTtlHours],
     ['OU_TTL_HOURS', cfg.ouTtlHours],
     ['KEEP_DAYS', cfg.keepDays],
@@ -378,11 +534,13 @@ function _saveSetupSummaryToSheet_() {
     ['CACHE_WARMUP_BATCH_USER', cfg.cacheWarmupBatchUser],
     ['CACHE_WARMUP_INTERVAL_MINUTES', cfg.cacheWarmupIntervalMinutes],
     ['IPINFO_TOKEN_SET',  cfg.ipinfoTokenSet  ? 'Yes' : 'No'],
+    ['ABUSEIPDB_KEY_SET', cfg.abuseIpDbKeySet ? 'Yes' : 'No'],
     ['MONITOR_OUS',                  cfg.monitorOUs   || '(all)'],
     ['BULK_OU_LOAD',                 cfg.bulkOuLoad   ? 'TRUE' : 'FALSE'],
     ['CHAT_WEBHOOK_SET',             cfg.chatWebhookSet ? 'Yes' : 'No'],
     ['CHAT_ALERT_DEDUPE_HOURS',      cfg.chatAlertDedupeHours],
     ['CHAT_ALERT_ON_OUTSIDE_US',     cfg.chatAlertOnOutsideUS     ? 'TRUE' : 'FALSE'],
+    ['CHAT_ALERT_ON_OUTSIDE_SAFE_STATES', cfg.chatAlertOnOutsideSafeStates ? 'TRUE' : 'FALSE'],
     ['CHAT_ALERT_ON_IMPOSSIBLE_TRAVEL', cfg.chatAlertOnImpossibleTravel ? 'TRUE' : 'FALSE'],
     ['CHAT_ALERT_ON_BURST',          cfg.chatAlertOnBurst         ? 'TRUE' : 'FALSE'],
     ['CHAT_ALERT_SCHEDULED_ONLY',    cfg.chatAlertScheduledOnly   ? 'TRUE' : 'FALSE'],
