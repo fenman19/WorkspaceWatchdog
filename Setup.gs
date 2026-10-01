@@ -588,11 +588,14 @@ function trimSetupSheet(keepEntries) {
 
 function showLiveMap() {
   const state = _getLicenseState_();
-  if (state.phase === 'mapLocked' || state.phase === 'shutdown') {
+  if (state.phase === 'unlicensed' || state.phase === 'mapLocked' || state.phase === 'shutdown') {
+    var message = state.phase === 'unlicensed'
+      ? 'Workspace Watchdog requires an active license. Open the Setup Wizard to activate your license.'
+      : 'Your license expired on ' + state.expiresOn + '. The Live Map is disabled until a renewed ' +
+        'license is activated.\n\nVisit workspacewatchdog.com to renew, or open the Setup Wizard to enter a new token.';
     SpreadsheetApp.getUi().alert(
       'Live Map Unavailable',
-      'Your license expired on ' + state.expiresOn + '. The Live Map is disabled until a renewed ' +
-      'license is activated.\n\nVisit workspacewatchdog.com to renew, or open the Setup Wizard to enter a new token.',
+      message,
       SpreadsheetApp.getUi().ButtonSet.OK
     );
     return;

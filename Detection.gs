@@ -354,6 +354,7 @@ function _refreshSuspicious_(triggerName) {
 // ===== Risk Scoring ===========================================================
 
 function getUserRiskScores() {
+  _requireLicensed_();
   _applyRuntimeConfig_();
   const ss      = SpreadsheetApp.getActive();
   const shMain  = ss.getSheetByName(CONFIG.MAIN);
@@ -395,6 +396,7 @@ function getUserRiskScores() {
 
 function getUserRiskScore(email) {
   _requireAllowedUser_();
+  _requireLicensed_();
   if (!email) return 0;
   const scores = getUserRiskScores();
   return scores[String(email).toLowerCase()] || 0;
@@ -402,6 +404,7 @@ function getUserRiskScore(email) {
 
 function getUserRiskTrend(email) {
   _requireAllowedUser_();
+  _requireLicensed_();
   if (!email) return [];
   email = String(email).toLowerCase();
   const ss      = SpreadsheetApp.getActive();
@@ -474,6 +477,7 @@ function getUserRiskTrend(email) {
 }
 
 function getTopRiskUsers(n) {
+  _requireLicensed_();
   n = n || 5;
   const scores = getUserRiskScores();
   return Object.entries(scores)

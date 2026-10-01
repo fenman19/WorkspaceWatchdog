@@ -12,8 +12,8 @@ function scheduledSync() {
   try { _maybeRevalidateLicense_(); } catch (e) { /* never let this block sync */ }
 
   var state = _getLicenseState_();
-  if (state.phase === 'shutdown') {
-    _logShutdownSkipOncePerDay_(state);
+  if (_isLicenseProductBlocked_(state)) {
+    _logLicenseSkipOncePerDay_(state);
     return;
   }
 
@@ -23,17 +23,20 @@ function scheduledSync() {
 // Logs a single diagnostics row per day while sync is skipped due to license
 // shutdown, instead of one row per trigger firing (which could be every few
 // minutes for weeks on an unattended sheet).
-function _logShutdownSkipOncePerDay_(state) {
+function _logLicenseSkipOncePerDay_(state) {
   var p = PropertiesService.getScriptProperties();
   var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   var lastLogged = p.getProperty('WW_SYNC_SKIP_LOGGED');
   if (lastLogged === today) return;
   p.setProperty('WW_SYNC_SKIP_LOGGED', today);
-  _logDiagnostics('scheduledSync', new Date(), new Date(), 0, 0,
-    'Sync skipped — license expired since ' + state.expiresOn + ', grace period ended.', {});
+  var reason = state.phase === 'unlicensed'
+    ? 'Sync skipped — no active license is installed.'
+    : 'Sync skipped — license expired since ' + state.expiresOn + ', grace period ended.';
+  _logDiagnostics('scheduledSync', new Date(), new Date(), 0, 0, reason, {});
 }
 
 function _syncCore(triggerName) {
+  _requireLicensed_();
   _resetAllCaches_();
   const __ouMap = __getOUMap();
   const t0 = new Date();
@@ -312,6 +315,7 @@ function _latestLoginRowForEmail_(email, allObjs) {
 function backfillFourDays() { backfillDays(4, 6); }
 
 function backfillDays(days, chunkHours) {
+  _requireLicensed_();
   _applyRuntimeConfig_();
   const __ouMap = __getOUMap();
   days = Number(days) || 4;
@@ -404,6 +408,7 @@ function backfillDays(days, chunkHours) {
 }
 
 function cacheWarmup() {
+  if (_isLicenseProductBlocked_(_getLicenseState_())) return;
   _applyRuntimeConfig_();
   const ss = SpreadsheetApp.getActive();
   const main = ss.getSheetByName(CONFIG.MAIN);

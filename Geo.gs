@@ -228,6 +228,7 @@ function _batchWriteGeoRows_(shGeo, geoMap) {
 }
 
 function fillBlankGeoInMain() {
+  _requireLicensed_();
   _applyRuntimeConfig_();
   const ss     = SpreadsheetApp.getActive();
   const shMain = ss.getSheetByName(CONFIG.MAIN);
@@ -287,13 +288,11 @@ function fillBlankGeoInMain() {
 
 // Time-driven trigger handler: automatically backfills Main-sheet rows that
 // still carry blank/failed geo, reusing the exact same code path as the manual
-// "Fill Blank Geo in Main" menu item. This is what closes the gap where a row
-// first written with failed geo never gets updated after its IP later resolves.
-// Intentionally does NOT check license state — it's a lightweight, idempotent
-// maintenance task and is meant to stay safe to run during license-enforcement
-// testing (it's independent of scheduledSync, which self-skips on shutdown).
+// "Fill Blank Geo in Main" menu item. License enforcement is checked before
+// doing any maintenance work so an unlicensed/shutdown install stays idle.
 // Registered hourly by install/fastInstall and by _enableAutoGeoRetry_().
 function autoRetryFailedGeo() {
+  if (_isLicenseProductBlocked_(_getLicenseState_())) return;
   try {
     fillBlankGeoInMain();
   } catch (e) {
@@ -354,6 +353,7 @@ function _fetchLatestLoginEventForUser_(email, lookbackDays) {
 // ===== IP Reputation (AbuseIPDB) ==============================================
 
 function checkIPReputation(ip) {
+  _requireLicensed_();
   if (!CONFIG.IP_REP_ENABLED) return null;
   if (!ip) return null;
   const key = PropertiesService.getScriptProperties().getProperty('ABUSEIPDB_KEY');
@@ -409,6 +409,7 @@ function getIPReputation(ip) {
 }
 
 function clearIPReputationCache() {
+  _requireLicensed_();
   const p    = PropertiesService.getScriptProperties();
   const all  = p.getKeys();
   let cleared = 0;

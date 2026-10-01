@@ -142,6 +142,7 @@ function _bulkLoadAllOUs_(shOU) {
 }
 
 function bulkLoadAllOUsMenu() {
+  _requireLicensed_();
   _applyRuntimeConfig_();
   const ss = SpreadsheetApp.getActive();
   const shOU = ss.getSheetByName(CONFIG.OU_CACHE);
@@ -167,6 +168,7 @@ function _isMonitoredOU_(ou) {
 }
 
 function getMonitorableOUs() {
+  _requireLicensed_();
   _applyRuntimeConfig_();
   const ss = SpreadsheetApp.getActive();
   const sh = ss.getSheetByName(CONFIG.OU_CACHE);
@@ -188,6 +190,7 @@ function getMonitorableOUs() {
 }
 
 function fixActiveNow_OU_FromCache() {
+  _requireLicensed_();
   const ss = SpreadsheetApp.getActive();
   const shA = ss.getSheetByName(CONFIG.ACTIVE);
   if (!shA) return;

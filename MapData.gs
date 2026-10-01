@@ -8,7 +8,7 @@ function getLiveMapData(opts) {
   _requireAllowedUser_();
   _applyRuntimeConfig_();
   const licensePhase = _getLicenseState_().phase;
-  if (licensePhase === 'mapLocked' || licensePhase === 'shutdown') {
+  if (licensePhase === 'unlicensed' || licensePhase === 'mapLocked' || licensePhase === 'shutdown') {
     return { rows: [], total: 0, licenseLocked: true };
   }
   opts = opts || {};
@@ -88,6 +88,7 @@ function getLiveMapData(opts) {
 
 function getActiveNowMapData() {
   _requireAllowedUser_();
+  _requireMapLicense_();
   _applyRuntimeConfig_();
   const ss   = SpreadsheetApp.getActive();
   const shAN = ss.getSheetByName(CONFIG.ACTIVE);
@@ -125,6 +126,7 @@ function getActiveNowMapData() {
 
 function getSuspiciousMapData() {
   _requireAllowedUser_();
+  _requireMapLicense_();
   _applyRuntimeConfig_();
   const ss     = SpreadsheetApp.getActive();
   const shSusp = ss.getSheetByName(CONFIG.SUSPICIOUS);
@@ -193,6 +195,7 @@ function getSuspiciousMapData() {
 
 function getActiveNowCount() {
   _requireAllowedUser_();
+  _requireMapLicense_();
   const ss = SpreadsheetApp.getActive();
   const sh = ss.getSheetByName(CONFIG.ACTIVE);
   if (!sh || sh.getLastRow() <= 1) return 0;
@@ -201,12 +204,14 @@ function getActiveNowCount() {
 
 function getLastSyncTime() {
   _requireAllowedUser_();
+  _requireMapLicense_();
   const p = PropertiesService.getScriptProperties();
   return p.getProperty('lastSyncWallTime') || p.getProperty('lastRunISO') || '';
 }
 
 function getMapOUList() {
   _requireAllowedUser_();
+  _requireMapLicense_();
   _applyRuntimeConfig_();
   const res = getMonitorableOUs();
   return res.ous || [];
@@ -225,7 +230,7 @@ function getMapNotifications() {
     latestVersion:    null,
     installedVersion: getInstalledVersion(),
     licenseExpiring:  licState.phase === 'warn15' || licState.phase === 'warn7' || licState.phase === 'warn1',
-    licenseExpired:   licState.phase === 'mapLocked' || licState.phase === 'shutdown',
+    licenseExpired:   licState.phase === 'unlicensed' || licState.phase === 'mapLocked' || licState.phase === 'shutdown',
     licenseDaysLeft:  licState.daysUntil,
     licenseTier:      licState.tier || ''
   };

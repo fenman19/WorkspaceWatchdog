@@ -36,7 +36,7 @@ const UPDATER = {
 // Map access is disabled immediately at expiration for every tier; full
 // shutdown (sync/detection/alerts stop) happens after the grace period below.
 const LICENSE_GRACE_DAYS = {
-  trial:    7,
+  trial:    0,  // trial shuts down immediately at expiration
   paid:     30,
   lifetime: Infinity // never shuts down
 };
@@ -81,15 +81,18 @@ function validateAndStoreLicense(token) {
     var serverTier    = data.data && data.data.tier    ? data.data.tier    : tier;
 
     if (!data.success) {
-      // Even on failure (e.g. expired), store what the server told us about
-      // expiry/tier when available, so _getLicenseState_ has accurate data
-      // without requiring a successful re-activation.
+      // The license server answered successfully, even though the license itself
+      // is not valid (expired/revoked/etc.). Record this as a completed server
+      // check so an expired installation does not revalidate on every open/sync.
+      // Also store expiry/tier when supplied so _getLicenseState_ immediately
+      // reflects the authoritative server state.
+      var failProps = {};
+      failProps[LICENSE_PROPS.LAST_CHECK] = new Date().toISOString();
       if (serverExpires) {
-        var failProps = {};
         failProps[LICENSE_PROPS.EXPIRES] = serverExpires;
         failProps[LICENSE_PROPS.TIER]    = serverTier;
-        PropertiesService.getScriptProperties().setProperties(failProps);
       }
+      PropertiesService.getScriptProperties().setProperties(failProps);
       return { ok: false, error: data.result || data.error || 'validation_failed' };
     }
 
@@ -159,6 +162,44 @@ function getLicenseStateForClient() {
   _requireAllowedUser_();
   var state = _getLicenseState_();
   return { phase: state.phase, daysUntil: state.daysUntil, expiresOn: state.expiresOn };
+}
+
+// Returns true when normal Workspace Watchdog functionality must stop.
+// Paid licenses may remain in mapLocked during their grace period; trial
+// licenses have a 0-day grace period and therefore move straight to shutdown.
+function _isLicenseProductBlocked_(state) {
+  state = state || _getLicenseState_();
+  return state.phase === 'unlicensed' || state.phase === 'shutdown';
+}
+
+// Shared server-side enforcement gate for monitoring, reports, maintenance,
+// exports and other licensed product functionality. Setup/license activation
+// functions intentionally do not call this so an expired customer can renew.
+function _requireLicensed_() {
+  var state = _getLicenseState_();
+  if (state.phase === 'unlicensed') {
+    throw new Error('Workspace Watchdog requires an active license. Open the Setup Wizard to activate your license.');
+  }
+  if (state.phase === 'shutdown') {
+    throw new Error('Your Workspace Watchdog license expired on ' + (state.expiresOn || 'the recorded expiration date') +
+      '. Renew at workspacewatchdog.com to restore monitoring and reports.');
+  }
+  return state;
+}
+
+// Stronger gate used by Live Map data endpoints. The map is disabled as soon
+// as any expiring license crosses its expiration date, even while a paid
+// license is still inside its monitoring grace period.
+function _requireMapLicense_() {
+  var state = _getLicenseState_();
+  if (state.phase === 'unlicensed') {
+    throw new Error('Workspace Watchdog requires an active license. Open the Setup Wizard to activate your license.');
+  }
+  if (state.phase === 'mapLocked' || state.phase === 'shutdown') {
+    throw new Error('The Workspace Watchdog Live Map is unavailable because the license expired on ' +
+      (state.expiresOn || 'the recorded expiration date') + '. Renew at workspacewatchdog.com to restore map access.');
+  }
+  return state;
 }
 
 // Re-validates against the license server at most once per ~20 hours (so it's
@@ -278,8 +319,8 @@ function getVersionInfo() {
 
 function applyUpdate() {
   try {
-    if (_getLicenseState_().phase === 'shutdown') {
-      return { ok: false, message: 'Updates are paused because your license has expired and the grace period has ended. Renew at workspacewatchdog.com to resume updates.' };
+    if (_isLicenseProductBlocked_(_getLicenseState_())) {
+      return { ok: false, message: 'Updates are paused because there is no active Workspace Watchdog license. Activate or renew your license to resume updates.' };
     }
 
     const versionResp = UrlFetchApp.fetch(UPDATER.VERSION_URL, { muteHttpExceptions: true });

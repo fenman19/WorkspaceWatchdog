@@ -140,13 +140,18 @@ function doGet(e) {
 
     if (tab === 'livemap' || tab === '') {
       const state = _getLicenseState_();
-      if (state.phase === 'mapLocked' || state.phase === 'shutdown') {
+      if (state.phase === 'unlicensed' || state.phase === 'mapLocked' || state.phase === 'shutdown') {
         return _licenseLockedMapPage_(state);
       }
       return HtmlService.createHtmlOutputFromFile('LiveMap')
         .setTitle('Workspace Watchdog - Live Map')
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
+
+    // Raw tab/API access is licensed product functionality too. Without this
+    // gate an expired install could bypass the locked UI by requesting
+    // /exec?tab=Main (or another sheet) directly.
+    _requireLicensed_();
 
     const ss = SpreadsheetApp.getActive();
     const sh = ss.getSheetByName(tab);
@@ -184,14 +189,18 @@ function _json_(obj) {
 // Branded standalone page shown in place of the Live Map once a license has
 // expired (mapLocked or shutdown phase). Matches the dark WW theme.
 function _licenseLockedMapPage_(state) {
-  var heading = state.phase === 'shutdown'
-    ? 'License Expired — Monitoring Disabled'
-    : 'License Expired — Map Disabled';
-  var message = state.phase === 'shutdown'
-    ? 'Your license expired on ' + state.expiresOn + ' and the grace period has ended. ' +
-      'Monitoring, alerts, and the Live Map are disabled until a renewed license is activated.'
-    : 'Your license expired on ' + state.expiresOn + '. The Live Map is disabled until renewed. ' +
-      'Monitoring and alerts are still running for now.';
+  var heading = state.phase === 'unlicensed'
+    ? 'License Required'
+    : (state.phase === 'shutdown'
+      ? 'License Expired — Monitoring Disabled'
+      : 'License Expired — Map Disabled');
+  var message = state.phase === 'unlicensed'
+    ? 'Workspace Watchdog requires an active license. Open the Setup Wizard to activate your trial or paid license.'
+    : (state.phase === 'shutdown'
+      ? 'Your license expired on ' + state.expiresOn + ' and the grace period has ended. ' +
+        'Monitoring, alerts, reports, and the Live Map are disabled until a renewed license is activated.'
+      : 'Your license expired on ' + state.expiresOn + '. The Live Map is disabled until renewed. ' +
+        'Monitoring and alerts are still running during the paid grace period.');
 
   var html =
     '<!DOCTYPE html><html><head><meta charset="utf-8">' +

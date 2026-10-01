@@ -548,6 +548,6 @@ function weeklyReset() {
   _cleanupAlertKeys_();
 }
 
-function rebuildActiveNow() { _refreshActiveNow_(Number(CONFIG.ACTIVE_WINDOW_MINUTES || 30)); }
-function rebuildActiveNow30() { _refreshActiveNow_(30); }
-function rebuildActiveNow60() { _refreshActiveNow_(60); }
+function rebuildActiveNow() { _requireLicensed_(); _refreshActiveNow_(Number(CONFIG.ACTIVE_WINDOW_MINUTES || 30)); }
+function rebuildActiveNow30() { _requireLicensed_(); _refreshActiveNow_(30); }
+function rebuildActiveNow60() { _requireLicensed_(); _refreshActiveNow_(60); }
