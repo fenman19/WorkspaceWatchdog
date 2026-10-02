@@ -1,14 +1,11 @@
 {
-  "version": "3.7.0",
-  "released": "2026-08-31",
+  "version": "3.7.1",
+  "released": "2026-10-01",
   "changelog": [
-    "Added U.S. Safe States monitoring: successful U.S. logins from states not on the configured Safe States list can now be flagged as suspicious and sent to Google Chat",
-    "Added optional cellular/wireless ISP suppression for Safe States monitoring using the existing wireless-provider exclusion list",
-    "Added a State Monitoring activation cutoff so existing historical login rows are not retroactively flagged when the feature is first enabled",
-    "Improved wireless-provider list handling so ISP names containing commas are preserved correctly",
-    "Preserved existing Script Properties during guided install/repair so saved settings such as the Google Chat webhook are not erased",
-    "Improved guided-install diagnostics, trigger health checks, and automatic retry of failed geolocation lookups",
-    "Preserved the Impossible Travel null-island protection for missing or invalid geolocation data",
-    "Updated the Live Map to use the key-free OpenStreetMap basemap so the map no longer displays API KEY REQUIRED tiles"
+    "Hardened license enforcement across scheduled sync, manual sync, backfill, reports, Live Map data endpoints, raw data API access, and maintenance functions",
+    "Expired trial licenses now shut down immediately instead of continuing through a trial grace period",
+    "Unlicensed installations are now blocked from running Workspace Watchdog monitoring functions",
+    "Paid licenses retain the existing 30-day grace period after expiration",
+    "Improved expired-license revalidation caching so expired installations do not repeatedly contact the license server on every open or sync"
   ]
 }
