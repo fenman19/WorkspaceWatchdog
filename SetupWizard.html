@@ -287,10 +287,14 @@
           <ol>
             <li>Open <a id="deploymentsLink" class="instruction-link" href="#" target="_blank">Deployments</a> and create a Web App deployment.</li>
             <li>Choose <strong>Execute as: User accessing the web app</strong>.</li>
-            <li>Copy the deployment ID, then open <a id="projectSettingsLink" class="instruction-link" href="#" target="_blank">Apps Script Project Settings</a> and add it to Script Properties as <code>DEPLOYMENT_ID</code>.</li>
-            <li>Return here, save allowed users, and click Show Map URL.</li>
+            <li>Copy the Web App URL ending in <code>/exec</code> and paste it below. Workspace Watchdog saves the deployment ID for you.</li>
+            <li>Save the map settings, then click Show Map URL.</li>
           </ol>
         </div>
+        <label for="deploymentIdOrUrl">Web App deployment URL or ID</label>
+        <input id="deploymentIdOrUrl" type="text"
+          placeholder="https://script.google.com/macros/s/.../exec"
+          style="font-family:monospace;margin-top:4px;margin-bottom:8px;">
         <label for="mapAllowedUsers">Allowed users (one per line)</label>
         <textarea id="mapAllowedUsers" rows="3"
           placeholder="user@domain.com&#10;other@domain.com"
@@ -496,6 +500,7 @@
         abs.textContent = ' Not set'; abs.style.color = '#d93025';
       }
       document.getElementById('fastInstallLookbackMinutes').value = cfg.fastInstallLookbackMinutes || 120;
+      document.getElementById('deploymentIdOrUrl').value = cfg.deploymentUrl || cfg.deploymentId || '';
 
       // Load existing license status if already activated \u2014 never pre-fill
       // the actual token, just indicate it's set and let the field stay
@@ -532,16 +537,23 @@
       var status = document.getElementById('mapUserStatus');
       status.textContent = 'Saving...'; status.className = 'status';
       google.script.run
-        .withSuccessHandler(function(res) { status.textContent = 'Saved ' + res.count + ' user(s).'; status.className = 'status ok'; })
+        .withSuccessHandler(function(res) {
+          document.getElementById('deploymentIdOrUrl').value = res.url || '';
+          status.textContent = 'Saved deployment and ' + res.count + ' allowed user(s).';
+          status.className = 'status ok';
+        })
         .withFailureHandler(function(e)   { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
-        .saveMapAllowedUsers(document.getElementById('mapAllowedUsers').value);
+        .saveMapAccessSettings(
+          document.getElementById('deploymentIdOrUrl').value,
+          document.getElementById('mapAllowedUsers').value
+        );
     }
 
     function showMapUrl() {
       var status = document.getElementById('mapUserStatus');
       google.script.run
         .withSuccessHandler(function(url) {
-          if (!url) { status.textContent = 'Set DEPLOYMENT_ID in Script Properties first.'; status.className = 'status bad'; return; }
+          if (!url) { status.textContent = 'Paste and save the Web App deployment URL above first.'; status.className = 'status bad'; return; }
           status.textContent = 'URL: ' + url; status.className = 'status ok';
         })
         .withFailureHandler(function(e) { status.textContent = 'Error: ' + (e.message || String(e)); status.className = 'status bad'; })
@@ -645,7 +657,8 @@
       return {
         ipinfoToken:                document.getElementById('ipinfoToken').value,
         abuseIpDbKey:               document.getElementById('abuseIpDbKey').value,
-        fastInstallLookbackMinutes: document.getElementById('fastInstallLookbackMinutes').value
+        fastInstallLookbackMinutes: document.getElementById('fastInstallLookbackMinutes').value,
+        deploymentIdOrUrl:          document.getElementById('deploymentIdOrUrl').value.trim()
       };
     }
 

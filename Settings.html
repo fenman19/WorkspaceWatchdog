@@ -423,8 +423,15 @@
     </div>
     <div class="card-body collapsed" style="max-height:400px;">
       <div class="hint" style="margin-top:10px;margin-bottom:8px;">
-        Emails allowed to access the full screen map. Deploy as Web App with
-        <strong>Execute as: User accessing the web app</strong>.
+        Deploy as a Web App with <strong>Execute as: User accessing the web app</strong>, then paste the
+        Web App URL below. Workspace Watchdog will save the deployment ID automatically.
+      </div>
+      <label for="deploymentIdOrUrl">Web App deployment URL or ID</label>
+      <input id="deploymentIdOrUrl" type="text"
+        placeholder="https://script.google.com/macros/s/.../exec"
+        style="font-family:monospace;margin-bottom:8px;">
+      <div class="hint" style="margin-bottom:10px;">
+        You can paste the full <code>/exec</code> URL or only the deployment ID.
       </div>
       <label for="mapAllowedUsers">Allowed users (one per line)</label>
       <textarea id="mapAllowedUsers" rows="4"
@@ -687,7 +694,8 @@
         digestEmailTo:               document.getElementById('digestEmailTo').value.trim(),
         weeklyReportEnabled:         document.getElementById('weeklyReportEnabled').checked,
         digestComparison:            document.getElementById('digestComparison').checked,
-        campusIpFilter:              document.getElementById('campusIpFilter').value.trim()
+        campusIpFilter:              document.getElementById('campusIpFilter').value.trim(),
+        deploymentIdOrUrl:           document.getElementById('deploymentIdOrUrl').value.trim()
       };
     }
 
@@ -744,6 +752,7 @@
       document.getElementById('chatAlertScheduledOnly').checked   = cfg.chatAlertScheduledOnly !== false;
 
       document.getElementById('campusIpFilter').value              = cfg.campusIpFilter             || '';
+      document.getElementById('deploymentIdOrUrl').value          = cfg.deploymentUrl || cfg.deploymentId || '';
 
       // Webhook status indicator
       var urlField = document.getElementById('chatWebhookUrl');
@@ -917,15 +926,21 @@
     function saveMapUsers() {
       setStatus('mapUserStatus', 'Saving...');
       google.script.run
-        .withSuccessHandler(function(res) { setStatus('mapUserStatus', 'Saved ' + res.count + ' user(s).', true); })
+        .withSuccessHandler(function(res) {
+          document.getElementById('deploymentIdOrUrl').value = res.url || '';
+          setStatus('mapUserStatus', 'Saved deployment and ' + res.count + ' allowed user(s).', true);
+        })
         .withFailureHandler(function(err) { setStatus('mapUserStatus', 'Error: ' + (err.message || String(err)), false); })
-        .saveMapAllowedUsers(document.getElementById('mapAllowedUsers').value);
+        .saveMapAccessSettings(
+          document.getElementById('deploymentIdOrUrl').value,
+          document.getElementById('mapAllowedUsers').value
+        );
     }
 
     function showMapUrl() {
       google.script.run
         .withSuccessHandler(function(url) {
-          if (!url) { setStatus('mapUserStatus', 'Set DEPLOYMENT_ID in Script Properties first.', false); return; }
+          if (!url) { setStatus('mapUserStatus', 'Paste and save the Web App deployment URL above first.', false); return; }
           setStatus('mapUserStatus', 'URL: ' + url, true);
         })
         .withFailureHandler(function(err) { setStatus('mapUserStatus', 'Error: ' + (err.message || String(err)), false); })

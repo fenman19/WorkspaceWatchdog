@@ -32,6 +32,7 @@ function installWorkspaceWatchdog() {
   PropertiesService.getScriptProperties().setProperties({
     INSTALL_COMPLETE: 'true',
     INSTALL_VERSION: WW_MONITOR_VERSION,
+    WW_INSTALLED_VERSION: WW_MONITOR_VERSION,
     INSTALL_TIMESTAMP: new Date().toISOString()
   });
 
@@ -86,6 +87,7 @@ function fastInstallWorkspaceWatchdog(seedMinutes) {
     p.setProperties({
       INSTALL_COMPLETE: 'true',
       INSTALL_VERSION: WW_MONITOR_VERSION,
+      WW_INSTALLED_VERSION: WW_MONITOR_VERSION,
       INSTALL_TIMESTAMP: new Date().toISOString()
     });
 
@@ -248,6 +250,8 @@ function getWizardConfig() {
     installed: p.getProperty('INSTALL_COMPLETE') === 'true',
     installVersion: p.getProperty('INSTALL_VERSION') || '',
     installTimestamp: p.getProperty('INSTALL_TIMESTAMP') || '',
+    deploymentId: p.getProperty('DEPLOYMENT_ID') || '',
+    deploymentUrl: _getDeploymentUrlFromId_(p.getProperty('DEPLOYMENT_ID') || ''),
     // License
     licenseTokenSet: !!p.getProperty('WW_LICENSE_KEY'),
     licenseTier:   p.getProperty('WW_LICENSE_TIER')   || '',
@@ -328,6 +332,12 @@ function saveWizardConfig(form) {
   }
   if (form.abuseIpDbKey && form.abuseIpDbKey.trim()) {
     PropertiesService.getScriptProperties().setProperty('ABUSEIPDB_KEY', form.abuseIpDbKey.trim());
+  }
+  if (Object.prototype.hasOwnProperty.call(form, 'deploymentIdOrUrl')) {
+    const rawDeployment = String(form.deploymentIdOrUrl || '').trim();
+    if (rawDeployment) {
+      p.setProperty('DEPLOYMENT_ID', _normalizeDeploymentId_(rawDeployment));
+    }
   }
   _applyRuntimeConfig_();
   _ensureSetupSheet_();
@@ -483,13 +493,38 @@ function getInstallationHealth() {
   };
 }
 
+function _getSetupDisplayVersion_() {
+  // The code currently installed in this Apps Script project is the source of
+  // truth. Stored properties can lag behind after a manual/test-repo update.
+  // Fall back to properties only if the code constant is ever unavailable.
+  const p = PropertiesService.getScriptProperties();
+  return (typeof WW_MONITOR_VERSION !== 'undefined' && WW_MONITOR_VERSION) ||
+         p.getProperty('WW_INSTALLED_VERSION') ||
+         p.getProperty('INSTALL_VERSION') ||
+         '';
+}
+
+function _syncSetupVersion_() {
+  const p = PropertiesService.getScriptProperties();
+  const version = _getSetupDisplayVersion_();
+  if (!version) return '';
+
+  // Repair stale stored version properties as well as the visible Setup sheet.
+  p.setProperty('INSTALL_VERSION', version);
+  p.setProperty('WW_INSTALLED_VERSION', version);
+
+  const sh = SpreadsheetApp.getActive().getSheetByName('Setup');
+  if (sh) sh.getRange('B2').setValue(version);
+  return version;
+}
+
 function _ensureSetupSheet_() {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName('Setup');
   if (!sh) sh = ss.insertSheet('Setup');
   const rows = [
     ['Workspace Watchdog Setup', ''],
-    ['Version', WW_MONITOR_VERSION],
+    ['Version', _getSetupDisplayVersion_()],
     ['Installed', PropertiesService.getScriptProperties().getProperty('INSTALL_COMPLETE') === 'true' ? 'Yes' : 'No'],
     ['Install Timestamp', PropertiesService.getScriptProperties().getProperty('INSTALL_TIMESTAMP') || ''],
     ['Last Run Cursor', PropertiesService.getScriptProperties().getProperty('lastRunISO') || ''],
@@ -535,6 +570,7 @@ function _saveSetupSummaryToSheet_() {
     ['CACHE_WARMUP_INTERVAL_MINUTES', cfg.cacheWarmupIntervalMinutes],
     ['IPINFO_TOKEN_SET',  cfg.ipinfoTokenSet  ? 'Yes' : 'No'],
     ['ABUSEIPDB_KEY_SET', cfg.abuseIpDbKeySet ? 'Yes' : 'No'],
+    ['DEPLOYMENT_ID_SET', cfg.deploymentId ? 'Yes' : 'No'],
     ['MONITOR_OUS',                  cfg.monitorOUs   || '(all)'],
     ['BULK_OU_LOAD',                 cfg.bulkOuLoad   ? 'TRUE' : 'FALSE'],
     ['CHAT_WEBHOOK_SET',             cfg.chatWebhookSet ? 'Yes' : 'No'],
@@ -607,11 +643,50 @@ function showLiveMap() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Live Map');
 }
 
+function _normalizeDeploymentId_(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  // Accept the full Apps Script web-app URL or the deployment ID by itself.
+  const match = raw.match(/script\.google\.com\/macros\/s\/([^/?#]+)(?:\/exec)?/i);
+  const id = match ? match[1] : raw;
+
+  // Deployment IDs are URL-safe opaque strings. Reject obvious pasted junk.
+  if (!/^[A-Za-z0-9_-]{20,}$/.test(id)) {
+    throw new Error('Invalid Web App deployment URL or Deployment ID. Paste the /exec URL from Deploy → Manage deployments, or the deployment ID itself.');
+  }
+  return id;
+}
+
+function _getDeploymentUrlFromId_(deploymentId) {
+  const depId = String(deploymentId || '').trim();
+  return depId ? 'https://script.google.com/macros/s/' + depId + '/exec' : '';
+}
+
 function getMapFullscreenUrl() {
   const p     = PropertiesService.getScriptProperties();
   const depId = p.getProperty('DEPLOYMENT_ID') || '';
-  if (!depId) return null;
-  return 'https://script.google.com/macros/s/' + depId + '/exec';
+  return _getDeploymentUrlFromId_(depId) || null;
+}
+
+function saveMapAccessSettings(deploymentIdOrUrl, allowedUsersRaw) {
+  const raw = String(deploymentIdOrUrl || '').trim();
+  if (!raw) {
+    throw new Error('Paste the Web App deployment URL or Deployment ID first.');
+  }
+
+  const depId = _normalizeDeploymentId_(raw);
+  PropertiesService.getScriptProperties().setProperty('DEPLOYMENT_ID', depId);
+  const usersResult = saveMapAllowedUsers(allowedUsersRaw || '');
+
+  _ensureSetupSheet_();
+  _saveSetupSummaryToSheet_();
+  return {
+    ok: true,
+    deploymentId: depId,
+    url: _getDeploymentUrlFromId_(depId),
+    count: usersResult && typeof usersResult.count === 'number' ? usersResult.count : 0
+  };
 }
 
 function showFullscreenMapUrl() {
@@ -625,9 +700,9 @@ function showFullscreenMapUrl() {
       '2. Type: Web App\n' +
       '3. Execute as: User accessing the web app\n' +
       '4. Who has access: Anyone in your organization\n' +
-      '5. Copy the Deployment ID from the URL\n' +
-      '6. Add it to Script Properties as DEPLOYMENT_ID\n' +
-      '7. Add allowed emails to MAP_ALLOWED_USERS in Setup Wizard\n\n' +
+      '5. Copy the Web App URL ending in /exec\n' +
+      '6. Open Workspace Watchdog → Settings and paste it under Full Screen Map Access\n' +
+      '7. Add allowed emails under Full Screen Map Access\n\n' +
       'No API_TOKEN needed. Google handles authentication.',
       ui.ButtonSet.OK
     );

@@ -379,6 +379,11 @@ function applyUpdate() {
     }
 
     saveInstalledVersion(remote.version);
+    PropertiesService.getScriptProperties().setProperty('INSTALL_VERSION', remote.version);
+
+    // Keep the visible Setup sheet version synchronized with the installed build.
+    const setupSheet = SpreadsheetApp.getActive().getSheetByName('Setup');
+    if (setupSheet) setupSheet.getRange('B2').setValue(remote.version);
 
     return {
       ok:      true,

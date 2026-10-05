@@ -26,6 +26,7 @@
 
 function onOpen() {
   _applyRuntimeConfig_();
+  _syncSetupVersion_();
 
   SpreadsheetApp.getUi()
     .createMenu('Workspace Watchdog')

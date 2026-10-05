@@ -147,9 +147,12 @@
        rotate/texture dropdowns (worse on narrower/lower-resolution screens). */
     #tbLeft, #tbRight {
       display: flex; align-items: center; gap: 6px;
-      flex: 1 1 auto; min-width: 0; overflow: hidden;
+      flex: 1 1 auto; min-width: 0;
     }
-    #tbRight { justify-content: flex-end; }
+    /* The view dropdown extends below the toolbar, so the left side must not
+       clip Main / Active Now / Suspicious. Keep right-side clipping protection. */
+    #tbLeft  { overflow: visible; }
+    #tbRight { overflow: hidden; justify-content: flex-end; }
     #tbScoreGroup {
       display: flex; align-items: center; height: 100%;
       flex-shrink: 0;
@@ -199,7 +202,7 @@
     #map .leaflet-tile-pane {
       filter: invert(100%) hue-rotate(180deg) brightness(72%) contrast(92%) saturate(70%);
     }
-    #globe-container { position: absolute; inset: 0; display: none; z-index: 5; }
+    #globe-container { position: absolute; inset: 0; display: none; z-index: 5; pointer-events: auto; }
 
     /* ── License expiry banner ────────────────────────────────────────────
        Sibling of #map / #globe-container inside #main (position:relative),
@@ -234,8 +237,9 @@
     #globeAlertPanel {
       display: none;
       position: absolute;
-      top: 12px; right: 12px;
-      width: 260px;
+      top: 12px; left: 12px;
+      right: auto;
+      width: 280px;
       z-index: 20;
       pointer-events: auto;
       flex-direction: column;
@@ -289,6 +293,11 @@
     }
     .gap-alert-item:last-child { border-bottom: none; }
     .gap-alert-item:hover { background: rgba(255,255,255,0.04); }
+    .gap-alert-item.selected {
+      outline: 1px solid rgba(0,200,255,0.65);
+      box-shadow: inset 0 0 0 1px rgba(0,200,255,0.18), 0 0 12px rgba(0,200,255,0.12);
+      background: rgba(0,200,255,0.06);
+    }
     .gap-alert-travel  { border-left-color: #ff6d00 !important; background: rgba(255,109,0,0.06); }
     .gap-alert-burst   { border-left-color: #ffaa00 !important; background: rgba(255,170,0,0.06); }
     .gap-alert-outside { border-left-color: #f44336 !important; background: rgba(244,67,54,0.06); }
@@ -374,8 +383,17 @@
       box-shadow: 0 0 8px #00c8ff, 0 0 16px rgba(0,200,255,0.4);
     }
     #detail { width: 0; min-width: 0; background: var(--surface); border-left: 0px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden; max-height: 100%;
+      position: relative; z-index: 30; pointer-events: none;
       transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-left-width 0.25s, min-width 0.25s; }
-    #detail.open { width: 260px; min-width: 260px; border-left-width: 1px; }
+    #detail.open { width: 260px; min-width: 260px; border-left-width: 1px; pointer-events: auto; box-shadow: -8px 0 24px rgba(0,0,0,0.45); }
+    /* In globe mode the map flex item is hidden and the globe is absolutely positioned,
+       so anchor Details explicitly to the right instead of letting flex place it left. */
+    #main.globe-mode #detail {
+      position: absolute;
+      top: 0; right: 0; bottom: 0;
+      height: 100%;
+      z-index: 30;
+    }
     #detailHeader { padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-family: 'Share Tech Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: var(--accent); text-transform: uppercase; flex-shrink: 0; }
     #detailScroll { flex: 1; overflow-y: auto; min-height: 0; }
     #detailBody { padding: 10px 12px; font-size: 13px; }
@@ -719,7 +737,7 @@
     <div id="globeAlertCard">
       <div class="gap-header">
         <div class="gap-header-dot"></div>
-        <span class="gap-header-title">Active Alerts</span>
+        <span class="gap-header-title">Suspicious Events</span>
         <span id="globeAlertCount" style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);"></span>
       </div>
       <div id="globeAlertList">
@@ -1745,6 +1763,7 @@ function showSuspDetail(r) {
 function clearDetail() {
   var detail = document.getElementById('detail');
   detail.classList.remove('open');
+  _setSelectedGlobeAlert_(null);
   // Reset content and resize map after slide-out finishes
   setTimeout(function() {
     if (!detail.classList.contains('open')) {
@@ -2659,7 +2678,7 @@ function openFullScreen() {
   google.script.run
     .withSuccessHandler(function(url) {
       if (!url) {
-        showErr('Full-screen URL not configured. Set DEPLOYMENT_ID in Script Properties, then use Workspace Watchdog > Full-Screen Map from the sheet menu.');
+        showErr('Full-screen URL not configured. Open Workspace Watchdog > Settings and save the Web App deployment URL under Full Screen Map Access.');
         return;
       }
       window.open(url, '_blank');
@@ -2683,6 +2702,7 @@ function updateGlobeAlertPanel() {
 
   if (!globeOn || !suspOverlayActive || !suspOverlayData) {
     panel.classList.remove('visible');
+    _setSelectedGlobeAlert_(null);
     return;
   }
 
@@ -2755,7 +2775,7 @@ function updateGlobeAlertPanel() {
                     r.reason === 'Login Burst'       ? 'gap-alert-burst'  :
                     r.reason === 'Outside Safe States' ? 'gap-alert-state' : 'gap-alert-outside';
 
-    return '<div class="gap-alert-item ' + itemClass + '" onclick="globeAlertClick(' + JSON.stringify(r) + ')">' +
+    return '<div class="gap-alert-item ' + itemClass + '" data-alert-key="' + esc(_globeAlertKey(r)) + '" onclick="globeAlertClick(' + JSON.stringify(r) + ')">' +
       '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
         '<span style="font-size:13px;color:' + iconColor + ';">' + icon + '</span>' +
         '<span style="font-family:monospace;font-size:10px;font-weight:700;' +
@@ -2773,6 +2793,31 @@ function updateGlobeAlertPanel() {
   }
 }
 
+function _globeAlertKey(r) {
+  if (!r) return '';
+  return [r.email || '', r.reason || '', r.ts || '', r.details || '', r.fromLL || '', r.toLL || ''].join('|');
+}
+
+function _setSelectedGlobeAlert_(r) {
+  var list = document.getElementById('globeAlertList');
+  if (!list) return;
+  var targetKey = _globeAlertKey(r);
+  Array.prototype.forEach.call(list.querySelectorAll('.gap-alert-item[data-alert-key]'), function(el) {
+    el.classList.toggle('selected', el.getAttribute('data-alert-key') === targetKey);
+  });
+}
+
+function focusGlobeOnAlert(r) {
+  if (!globeInstance || !r) return;
+  var ll = (r.reason === 'Impossible Travel' ? (r.toLL || r.fromLL) : (r.fromLL || r.toLL || ''));
+  if (!ll || ll.indexOf(',') === -1) return;
+  var p = ll.split(',');
+  var lat = Number(p[0]), lng = Number(p[1]);
+  if (!isFinite(lat) || !isFinite(lng)) return;
+  var pov = globeInstance.pointOfView ? globeInstance.pointOfView() : { altitude: 2.2 };
+  globeInstance.pointOfView({ lat: lat, lng: lng, altitude: Math.min(pov.altitude || 2.2, 1.8) }, 900);
+}
+
 function globeAlertClick(r) {
   // Open detail panel with this suspicious event
   if (r && r.email) {
@@ -2780,6 +2825,8 @@ function globeAlertClick(r) {
     showSuspDetail(r);
     hideRiskPanel();
     showRiskPanel(r.email);
+    _setSelectedGlobeAlert_(r);
+    focusGlobeOnAlert(r);
   }
 }
 
@@ -2801,6 +2848,11 @@ var GLOBE_COLORS = {
 
 function toggleGlobeView() {
   var on = document.getElementById('globeToggle').checked;
+
+  // In globe mode, Details must be anchored to the right because the globe itself
+  // is absolutely positioned and does not participate in the flex layout.
+  var mainEl = document.getElementById('main');
+  if (mainEl) mainEl.classList.toggle('globe-mode', on);
 
   // Map layer
   document.getElementById('map').style.display = on ? 'none' : '';
@@ -2875,9 +2927,12 @@ function _openGlobeDetail(pt) {
     showSuspDetail(r);
     hideRiskPanel();
     if (r.email) showRiskPanel(r.email);
+    _setSelectedGlobeAlert_(r);
   } else if (r.lastSeen !== undefined) {
+    _setSelectedGlobeAlert_(null);
     showActiveDetail(r);
   } else {
+    _setSelectedGlobeAlert_(null);
     showDetail(r);
   }
 }
@@ -2948,8 +3003,9 @@ function initGlobe() {
       var clickX = e.clientX - rect.left;
       var clickY = e.clientY - rect.top;
 
-      // Project each point to screen space and find the nearest one to the click
-      var best = null, bestDist = Infinity;
+      // Project each point to screen space and find the best hit for the click.
+      // When suspicious overlay is on, prefer suspicious points if multiple points overlap.
+      var hits = [];
       var HIT_RADIUS = 20; // pixels — generous for small dots
 
       pts.forEach(function(pt) {
@@ -2958,14 +3014,24 @@ function initGlobe() {
           var sc = globeInstance.getScreenCoords(pt.lat, pt.lng, alt);
           if (!sc) return;
           var d = Math.sqrt(Math.pow(sc.x - clickX, 2) + Math.pow(sc.y - clickY, 2));
-          if (d < HIT_RADIUS && d < bestDist) {
-            bestDist = d;
-            best = pt;
-          }
+          if (d < HIT_RADIUS) hits.push({ pt: pt, d: d });
         } catch(err) {}
       });
 
-      if (best) _openGlobeDetail(best);
+      if (hits.length) {
+        hits.sort(function(a, b) {
+          if (suspOverlayActive) {
+            var as = a.pt && a.pt._susp ? 1 : 0;
+            var bs = b.pt && b.pt._susp ? 1 : 0;
+            if (as !== bs) return bs - as;
+          }
+          if (a.d !== b.d) return a.d - b.d;
+          var ah = a.pt && a.pt.risk === 'high' ? 1 : 0;
+          var bh = b.pt && b.pt.risk === 'high' ? 1 : 0;
+          return bh - ah;
+        });
+        _openGlobeDetail(hits[0].pt);
+      }
     }, true);
   })();
 
