@@ -506,6 +506,86 @@
     #chartModalCanvas { width: 100% !important; flex: 1; min-height: 0; }
     .chart-wrap canvas { height: 170px !important; width: 100% !important; }
 
+
+    /* ── Integrated Investigation modal ─────────────────────────────────── */
+    #investigateModal { position:fixed; inset:0; z-index:12000; background:rgba(0,0,0,.84); display:none; align-items:center; justify-content:center; padding:18px; backdrop-filter:blur(3px); }
+    #investigateModal.open { display:flex; }
+    .inv-shell { width:min(1500px,98vw); height:min(920px,96vh); background:#0f172a; border:1px solid #2a3549; border-radius:12px; box-shadow:0 24px 90px rgba(0,0,0,.75); display:flex; flex-direction:column; overflow:hidden; color:#e5e7eb; }
+    .inv-head { display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid #2a3549; background:rgba(10,16,29,.98); flex-shrink:0; }
+    .inv-brand { display:flex; align-items:center; gap:10px; min-width:0; }
+    .inv-logo { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; background:linear-gradient(135deg,#2563eb,#60a5fa); color:white; font-weight:800; box-shadow:0 5px 18px rgba(37,99,235,.25); }
+    .inv-title { color:#e5e7eb; font-weight:800; font-size:15px; }
+    .inv-subtitle { color:#9ca3af; font-size:10px; margin-top:1px; }
+    .inv-close { margin-left:auto; }
+    .inv-search-card { padding:14px 16px 12px; border-bottom:1px solid #2a3549; background:#111827; flex-shrink:0; }
+    .inv-grid { display:grid; grid-template-columns:minmax(260px,1.25fr) minmax(190px,.8fr) minmax(190px,.8fr); gap:12px; }
+    .inv-field label,.inv-source-title,.inv-quick-label { display:block; color:#cbd5e1; font-weight:700; font-size:10px; margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em; }
+    .inv-field input,.inv-toolbar input { width:100%; box-sizing:border-box; background:#0d1524; border:1px solid #344155; color:#e5e7eb; border-radius:7px; padding:8px 9px; outline:none; }
+    .inv-field input:focus,.inv-toolbar input:focus { border-color:#60a5fa; box-shadow:0 0 0 2px rgba(96,165,250,.10); }
+    .inv-quick { margin-top:10px; }
+    .inv-quick-buttons { display:flex; gap:6px; flex-wrap:wrap; }
+    .inv-sources-wrap { margin-top:10px; }
+    .inv-sources { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:7px; }
+    .inv-source-check { display:flex; align-items:center; gap:7px; border:1px solid #344155; border-radius:7px; background:#0d1524; padding:7px 9px; font-size:11px; cursor:pointer; user-select:none; }
+    .inv-source-check:hover { border-color:#53657f; }
+    .inv-source-check input { accent-color:#2563eb; }
+    .inv-actions { display:flex; gap:7px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+    .inv-note { color:#9ca3af; font-size:10px; margin-left:auto; }
+    .inv-status { margin-top:9px; border-radius:7px; padding:7px 9px; display:none; white-space:pre-wrap; font-size:11px; }
+    .inv-status.show { display:block; }
+    .inv-status.info { background:#10213d; border:1px solid #244d83; color:#bfdbfe; }
+    .inv-status.good { background:#0f2b1c; border:1px solid #1f6d3f; color:#bbf7d0; }
+    .inv-status.bad { background:#351417; border:1px solid #7f1d1d; color:#fecaca; }
+    .inv-progress { margin-top:9px; display:none; }
+    .inv-progress.show { display:block; }
+    .inv-progress-bar { height:7px; border-radius:999px; background:#223047; overflow:hidden; }
+    .inv-progress-bar > div { height:100%; width:0; background:linear-gradient(90deg,#2563eb,#60a5fa); transition:width .2s ease; }
+    .inv-progress-text { margin-top:5px; color:#9ca3af; font-size:10px; }
+    .inv-results { flex:1; min-height:0; display:none; flex-direction:column; background:#0f172a; }
+    .inv-results.show { display:flex; }
+    .inv-metrics { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:8px; padding:10px 16px; flex-shrink:0; }
+    .inv-metric { background:#111827; border:1px solid #2a3549; border-radius:8px; padding:9px 11px; }
+    .inv-metric-num { font-size:18px; font-weight:800; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #invMetricTarget { font-size:12px; overflow-wrap:anywhere; white-space:normal; }
+    .inv-metric-lbl { color:#9ca3af; font-size:9px; margin-top:2px; text-transform:uppercase; letter-spacing:.04em; }
+    .inv-result-panel { margin:0 16px 14px; border:1px solid #2a3549; border-radius:9px; overflow:hidden; flex:1; min-height:0; display:flex; flex-direction:column; background:#111827; }
+    .inv-tabs { display:flex; gap:4px; flex-wrap:wrap; padding:7px 7px 0; background:#0d1524; border-bottom:1px solid #2a3549; flex-shrink:0; }
+    .inv-tab { background:transparent; color:#aebbd0; border:1px solid transparent; border-bottom:none; border-radius:7px 7px 0 0; padding:7px 9px; font-size:10px; cursor:pointer; }
+    .inv-tab.active { background:#111827; color:white; border-color:#2a3549; }
+    .inv-tab .count { color:#93c5fd; margin-left:4px; }
+    .inv-toolbar { display:flex; align-items:center; gap:7px; padding:8px; border-bottom:1px solid #2a3549; flex-wrap:wrap; flex-shrink:0; }
+    .inv-toolbar input { width:min(360px,100%); }
+    .inv-toolbar-spacer { flex:1; }
+    .inv-small-note { color:#9ca3af; font-size:10px; }
+    .inv-table-wrap { overflow:auto; flex:1; min-height:0; }
+    .inv-table { border-collapse:separate; border-spacing:0; width:max-content; min-width:100%; font-size:10px; }
+    .inv-table thead th { position:sticky; top:0; z-index:5; background:#182235; color:#dbeafe; text-align:left; padding:7px 8px; border-bottom:1px solid #3a465b; border-right:1px solid #2b374b; white-space:nowrap; cursor:pointer; }
+    .inv-table tbody td { padding:6px 8px; border-bottom:1px solid #242f42; border-right:1px solid #202b3c; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .inv-table tbody tr:nth-child(even) { background:rgba(255,255,255,.015); }
+    .inv-table tbody tr:hover { background:rgba(96,165,250,.07); }
+    .inv-table tbody tr.inv-row-link { background:rgba(239,68,68,.20); box-shadow:inset 4px 0 0 #ef4444; }
+    .inv-cell-bad { color:#fca5a5; font-weight:700; }
+    .inv-cell-good { color:#86efac; font-weight:700; }
+    .inv-cell-warn { color:#fcd34d; font-weight:700; }
+    .inv-empty { padding:30px; color:#9ca3af; text-align:center; }
+    .inv-error-card { padding:14px; color:#fecaca; }
+    .investigate-btn { width:100%; margin-top:10px; padding:8px; font-size:12px; font-weight:700; border-color:#00b7ff; color:#9bdcff; background:rgba(0,183,255,.08); }
+    .bh-pivot-row { display:grid; grid-template-columns:minmax(320px,1.4fr) minmax(220px,.6fr); gap:12px; margin-top:10px; }
+    .bh-pivot-help { color:#9ca3af; font-size:9px; margin-top:4px; line-height:1.35; }
+    .bh-pivot-input { font-family:'Share Tech Mono',monospace; }
+    .bh-timeline-controls { display:none; align-items:center; gap:7px; flex-wrap:wrap; }
+    .bh-timeline-controls.show { display:flex; }
+    .bh-timeline-controls select {
+      background:#0d1524; border:1px solid #344155; color:#e5e7eb; border-radius:6px;
+      padding:6px 8px; font-size:10px; font-family:'Share Tech Mono',monospace;
+    }
+    .bh-track-suspect { color:#fca5a5; font-weight:800; }
+    .bh-track-related { color:#fcd34d; font-weight:800; }
+    .bh-track-other { color:#93c5fd; font-weight:700; }
+    .bh-track-unknown { color:#9ca3af; }
+    .bh-timeline-note { color:#9ca3af; font-size:9px; }
+    @media(max-width:900px){ .inv-grid{grid-template-columns:1fr}.inv-sources{grid-template-columns:repeat(2,minmax(130px,1fr))}.inv-metrics{grid-template-columns:repeat(2,1fr)}.inv-note{width:100%;margin-left:0} }
+
     /* ── Reports modal ──────────────────────────────────────────────────── */
     #reportsModal { display: none; position: fixed; inset: 0; background: rgba(5,8,16,0.85); z-index: 99000; align-items: flex-start; justify-content: center; padding-top: 5vh; backdrop-filter: blur(4px); }
     #reportsModal.open { display: flex; }
@@ -689,7 +769,9 @@
 
   <div class="tb-sep"></div>
 
-  <!-- Gear — opens filter drawer -->
+  <!-- Workspace Bloodhound -->
+  <button class="tb-btn" id="btnBloodhound" onclick="openBloodhoundModal()" title="Open Workspace Bloodhound">Bloodhound</button>
+
   <!-- Reports button -->
   <button id="btnReports" onclick="openReportsModal()" title="Generate Reports" style="background:none;border:1px solid transparent;border-radius:6px;color:var(--text2);cursor:pointer;font-size:14px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;transition:color .2s,border-color .2s;flex-shrink:0;">&#128202;</button>
 
@@ -842,6 +924,128 @@
 <div id="statusBar">
   <span id="sbLeft">Ready</span>
   <span id="sbRight"></span>
+</div>
+
+
+<!-- Integrated Investigation Modal -->
+<div id="investigateModal" onclick="closeInvestigationModal(event)">
+  <div class="inv-shell" onclick="event.stopPropagation()">
+    <div class="inv-head">
+      <div class="inv-brand">
+        <div class="inv-logo">W</div>
+        <div>
+          <div class="inv-title">Workspace Bloodhound</div>
+          <div class="inv-subtitle">Trace suspicious activity across Workspace audit logs • pivot on suspect IP addresses</div>
+        </div>
+      </div>
+      <button class="tb-btn inv-close" onclick="closeInvestigationModal()">Close</button>
+    </div>
+
+    <div class="inv-search-card">
+      <div class="inv-grid">
+        <div class="inv-field">
+          <label for="invEmail">Google Workspace account</label>
+          <input id="invEmail" type="text" autocomplete="off">
+        </div>
+        <div class="inv-field">
+          <label for="invStart">From</label>
+          <input id="invStart" type="datetime-local">
+        </div>
+        <div class="inv-field">
+          <label for="invEnd">To</label>
+          <input id="invEnd" type="datetime-local">
+        </div>
+      </div>
+
+      <div class="bh-pivot-row">
+        <div class="inv-field">
+          <label for="invSuspectIps">Suspect IP address(es)</label>
+          <input id="invSuspectIps" class="bh-pivot-input" type="text" autocomplete="off"
+                 placeholder="Example: 185.10.20.30, 91.22.33.44"
+                 oninput="wwBhOnPivotChanged()">
+          <div class="bh-pivot-help">Bloodhound uses these IPs to separate likely threat-actor activity from other activity on the same account. Multiple IPs can be separated by commas or spaces.</div>
+        </div>
+        <div class="inv-field">
+          <label for="bhRelatedMinutes">Related no-IP window</label>
+          <select id="bhRelatedMinutes" onchange="wwBhBuildTimeline()" style="width:100%;background:#0d1524;border:1px solid #344155;color:#e5e7eb;border-radius:7px;padding:8px 9px;">
+            <option value="5">±5 minutes</option>
+            <option value="10">±10 minutes</option>
+            <option value="15" selected>±15 minutes</option>
+            <option value="30">±30 minutes</option>
+          </select>
+          <div class="bh-pivot-help">Events with no IP are marked “Likely Related” only when they occur near a suspect-IP event.</div>
+        </div>
+      </div>
+
+      <div class="inv-quick">
+        <span class="inv-quick-label">Quick range around selected event</span>
+        <div class="inv-quick-buttons">
+          <button class="tb-btn" type="button" onclick="setInvestigationRange(1)">±1 Hour</button>
+          <button class="tb-btn" type="button" onclick="setInvestigationRange(6)">±6 Hours</button>
+          <button class="tb-btn" type="button" onclick="setInvestigationRange(12)">±12 Hours</button>
+          <button class="tb-btn" type="button" onclick="setInvestigationRange(24)">±24 Hours</button>
+        </div>
+      </div>
+
+      <div class="inv-sources-wrap">
+        <span class="inv-source-title">Log sources</span>
+        <div class="inv-sources">
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="login" checked> Login / User Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="gmail" checked> Gmail Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="drive"> Drive Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="admin" checked> Admin Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="takeout"> Takeout Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="token" checked> OAuth / Token Activity</label>
+          <label class="inv-source-check"><input type="checkbox" name="invSrc" value="user_accounts"> User Accounts</label>
+        </div>
+      </div>
+
+      <div class="inv-actions">
+        <button class="tb-btn" id="invRunBtn" onclick="runIntegratedInvestigation()">Run Bloodhound</button>
+        <button class="tb-btn" onclick="wwInvSelectAll(true)">Select All</button>
+        <button class="tb-btn" onclick="wwInvSelectAll(false)">Clear Sources</button>
+        <button class="tb-btn" onclick="wwInvClearResults()">Clear Results</button>
+        <span class="inv-note">Results stay in this browser view unless you export them.</span>
+      </div>
+
+      <div id="invStatus" class="inv-status"></div>
+      <div id="invProgress" class="inv-progress">
+        <div class="inv-progress-bar"><div id="invProgressBar"></div></div>
+        <div id="invProgressText" class="inv-progress-text"></div>
+      </div>
+    </div>
+
+    <div id="invResults" class="inv-results">
+      <div class="inv-metrics">
+        <div class="inv-metric"><div class="inv-metric-num" id="invMetricRecords">0</div><div class="inv-metric-lbl">Total records</div></div>
+        <div class="inv-metric"><div class="inv-metric-num" id="invMetricSources">0</div><div class="inv-metric-lbl">Sources completed</div></div>
+        <div class="inv-metric"><div class="inv-metric-num" id="invMetricErrors">0</div><div class="inv-metric-lbl">Source errors</div></div>
+        <div class="inv-metric"><div class="inv-metric-num" id="invMetricTarget">—</div><div class="inv-metric-lbl">Target account</div></div>
+      </div>
+      <div class="inv-result-panel">
+        <div id="invTabs" class="inv-tabs"></div>
+        <div class="inv-toolbar">
+          <input id="invFilter" type="text" placeholder="Filter current results…" oninput="wwInvRenderCurrentTable()">
+          <span id="invVisibleCount" class="inv-small-note"></span>
+          <div id="bhTimelineControls" class="bh-timeline-controls">
+            <span class="inv-small-note">Timeline:</span>
+            <select id="bhTimelineMode" onchange="wwBhRenderTimeline()">
+              <option value="suspect_related" selected>Suspect + Related</option>
+              <option value="suspect_only">Suspect IP Only</option>
+              <option value="all">All Account Activity</option>
+            </select>
+            <span id="bhTimelinePivotNote" class="bh-timeline-note"></span>
+          </div>
+          <div class="inv-toolbar-spacer"></div>
+          <button class="tb-btn" onclick="wwInvDownloadCurrentCsv()">Download Current CSV</button>
+          <button class="tb-btn" onclick="wwInvDownloadAllCsv()">Download Combined CSV</button>
+          <button class="tb-btn" id="invSaveSheetBtn" onclick="wwInvSaveToGoogleSheet()">Save to Google Sheet</button>
+          <button class="tb-btn" onclick="wwInvPrintCurrent()">Print Current View</button>
+        </div>
+        <div id="invTableWrap" class="inv-table-wrap"><div class="inv-empty">Run an investigation to view results.</div></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -1719,6 +1923,7 @@ function showDetail(r) {
     fld('IP', r.ip, true) + fld('ISP', r.isp, true) +
     fld('Location', loc) + fld('OU', r.ou) + fld('Time', r.ts) +
     '<button class="copy-btn" id="histBtn" style="margin-top:10px;width:100%;padding:7px;font-size:13px;font-weight:700;">View Full History</button>' +
+    '<button class="tb-btn investigate-btn" id="investigateBtn">Track with Bloodhound</button>' +
     '<div style="border-top:1px solid var(--border);margin:12px 0 8px;"></div>' +
     '<button class="wl-btn" id="wlEmailBtn" style="padding:7px;font-size:12px;margin-bottom:6px;">+ Whitelist this email</button>' +
     '<button class="wl-btn" id="wlIPBtn" style="padding:7px;font-size:12px;">+ Whitelist this IP</button>';
@@ -1726,6 +1931,10 @@ function showDetail(r) {
   if (cpBtn) cpBtn.addEventListener('click', function() { cp(r.email || ''); });
   var btn = document.getElementById('histBtn');
   if (btn) btn.addEventListener('click', function() { drillDownUser(r.email); });
+  var invBtn = document.getElementById('investigateBtn');
+  if (invBtn) invBtn.addEventListener('click', function() {
+    openBloodhoundModal(r.email, r.ts, { ip:r.ip||'', city:r.city||'', region:r.region||'', country:r.country||'', event:r.evName||'' });
+  });
   var wlE = document.getElementById('wlEmailBtn');
   if (wlE) wlE.addEventListener('click', function() { addToWhitelist(r.email, wlE); });
   var wlI = document.getElementById('wlIPBtn');
@@ -1743,8 +1952,13 @@ function showActiveDetail(r) {
     fld('IP', r.lastIp, true) + fld('ISP', r.isp, true) +
     fld('Location', loc) + fld('Sessions', r.count) +
     fld('Last Seen', r.lastSeen) +
+    '<button class="tb-btn investigate-btn" id="investigateActiveBtn">Track with Bloodhound</button>' +
     '<button class="wl-btn" id="wlAEmailBtn">+ Whitelist this email</button>' +
     '<button class="wl-btn" id="wlAIPBtn">+ Whitelist this IP</button>';
+  var invA = document.getElementById('investigateActiveBtn');
+  if (invA) invA.addEventListener('click', function() {
+    openBloodhoundModal(r.email, r.lastSeen, { ip:r.lastIp||'', city:r.city||'', region:r.region||'', country:r.country||'', event:'Active Now' });
+  });
   var wlAE = document.getElementById('wlAEmailBtn');
   if (wlAE) wlAE.addEventListener('click', function() { addToWhitelist(r.email, wlAE); });
   var wlAI = document.getElementById('wlAIPBtn');
@@ -1756,10 +1970,465 @@ function showSuspDetail(r) {
   document.getElementById('detailBody').innerHTML =
     fld('Email', r.email, true) + fld('Reason', r.reason) +
     fld('Details', r.details) + fld('Time', r.ts) +
+    '<button class="tb-btn investigate-btn" id="investigateSuspBtn">Track with Bloodhound</button>' +
     '<button class="wl-btn" id="wlSEmailBtn">+ Whitelist this email</button>';
+  var invS = document.getElementById('investigateSuspBtn');
+  if (invS) invS.addEventListener('click', function() {
+    var useTo = r.reason === 'Impossible Travel';
+    openBloodhoundModal(r.email, r.ts, {
+      ip:r.ip||r.toIp||r.fromIp||'',
+      city:(useTo ? r.toCity : r.fromCity)||'',
+      region:(useTo ? (r.toReg||r.toRegion) : (r.fromReg||r.fromRegion))||'',
+      country:(useTo ? (r.toCo||r.toCountry) : (r.fromCo||r.fromCountry))||'',
+      event:r.reason||'Suspicious event',
+      details:r.details||''
+    });
+  });
   var wlSE = document.getElementById('wlSEmailBtn');
   if (wlSE) wlSE.addEventListener('click', function() { addToWhitelist(r.email, wlSE); });
 }
+
+
+// ── Workspace Bloodhound ────────────────────────────────────────────────────
+var invContext = { email:'', anchor:null, ip:'', city:'', region:'', country:'', event:'', details:'' };
+var wwInvState = {
+  results: {}, errors: {}, activeSource: null,
+  sortColumn: -1, sortAsc: true, running: false, targetEmail: '',
+  timeline: null
+};
+var WW_INV_SOURCE_LABELS = {
+  login:'Login / User Activity', gmail:'Gmail Activity', drive:'Drive Activity',
+  admin:'Admin Activity', takeout:'Takeout Activity', token:'OAuth / Token Activity',
+  user_accounts:'User Accounts'
+};
+
+function openBloodhoundModal(email, eventTs, context) {
+  context = context || {};
+  invContext.email = email || '';
+  invContext.anchor = _invParseDate(eventTs) || new Date();
+  invContext.ip = context.ip || '';
+  invContext.city = context.city || '';
+  invContext.region = context.region || '';
+  invContext.country = context.country || '';
+  invContext.event = context.event || '';
+  invContext.details = context.details || '';
+
+  document.getElementById('invEmail').value = email || '';
+  document.getElementById('invSuspectIps').value = invContext.ip || '';
+  document.getElementById('investigateModal').classList.add('open');
+  wwInvClearResults(false);
+  setInvestigationRange(6);
+
+  if (email) {
+    var pivotText = invContext.ip ? ' Suspect IP: ' + invContext.ip + '.' : ' Bloodhound will try to identify the nearest login IP after the investigation runs.';
+    wwInvShowStatus('Ready to track ' + email + '. The default window is ±6 hours around the selected event.' + pivotText, 'info');
+  } else {
+    wwInvShowStatus('Workspace Bloodhound is ready. Enter an account, choose a time range, and optionally enter one or more suspect IP addresses.', 'info');
+  }
+}
+function openInvestigationModal(email, eventTs, context) { openBloodhoundModal(email, eventTs, context); }
+function closeInvestigationModal(e) {
+  if (e && e.target && e.target.id !== 'investigateModal') return;
+  document.getElementById('investigateModal').classList.remove('open');
+}
+function _invParseDate(v) { if (!v) return null; var d=new Date(v); return isNaN(d.getTime())?null:d; }
+function _invLocalInput(d) { function p(n){return String(n).padStart(2,'0');} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+function setInvestigationRange(hours) {
+  var anchor=invContext.anchor||new Date();
+  document.getElementById('invStart').value=_invLocalInput(new Date(anchor.getTime()-hours*3600000));
+  document.getElementById('invEnd').value=_invLocalInput(new Date(anchor.getTime()+hours*3600000));
+}
+function _invSelectedSources(){return Array.prototype.slice.call(document.querySelectorAll('input[name="invSrc"]:checked')).map(function(x){return x.value;});}
+function wwInvSelectAll(checked){document.querySelectorAll('input[name="invSrc"]').forEach(function(cb){cb.checked=checked;});}
+
+async function runIntegratedInvestigation() {
+  if (wwInvState.running) return;
+  var email=document.getElementById('invEmail').value.trim().toLowerCase();
+  var start=document.getElementById('invStart').value;
+  var end=document.getElementById('invEnd').value;
+  var selected=_invSelectedSources();
+  if(!email||email.indexOf('@')<0)return wwInvShowStatus('Enter a valid Google Workspace email address.','bad');
+  if(!start||!end)return wwInvShowStatus('Choose both a From and To date/time.','bad');
+  if(new Date(start)>=new Date(end))return wwInvShowStatus('The From date/time must be earlier than the To date/time.','bad');
+  if(!selected.length)return wwInvShowStatus('Select at least one log source.','bad');
+  var gmailDays=(new Date(end)-new Date(start))/86400000;
+  if(selected.indexOf('gmail')>=0&&gmailDays>30)return wwInvShowStatus('Gmail audit requests cannot span more than 30 days.','bad');
+
+  wwInvState.running=true; wwInvState.results={}; wwInvState.errors={}; wwInvState.activeSource=null;
+  wwInvState.targetEmail=email; wwInvState.sortColumn=-1; wwInvState.sortAsc=true;
+  var btn=document.getElementById('invRunBtn'); btn.disabled=true; btn.textContent='Running…';
+  document.getElementById('invResults').classList.add('show');
+  document.getElementById('invFilter').value='';
+  document.getElementById('invProgress').classList.add('show');
+  wwInvUpdateSummary(); wwInvRenderTabs(); wwInvRenderCurrentTable();
+  wwInvShowStatus('Starting investigation for '+email+'…','info');
+
+  for(var i=0;i<selected.length;i++){
+    var source=selected[i], label=wwInvGetSourceLabel(source);
+    wwInvSetProgress(i,selected.length,'Collecting '+label+'…');
+    try{
+      var result=await wwInvCallSource({email:email,start:start,end:end,source:source});
+      wwInvState.results[source]=result;
+      if(!wwInvState.activeSource)wwInvState.activeSource=source;
+      var suffix=result.truncated?' (record limit reached)':'';
+      wwInvShowStatus(label+': '+Number(result.count||0).toLocaleString()+' record(s)'+suffix,'info');
+    }catch(err){
+      wwInvState.errors[source]=wwInvErrorText(err);
+      if(!wwInvState.activeSource)wwInvState.activeSource=source;
+    }
+    wwInvUpdateSummary(); wwInvRenderTabs(); wwInvRenderCurrentTable();
+  }
+
+  wwBhMaybeAutoSelectSuspectIp();
+  wwBhBuildTimeline();
+  wwInvState.running=false; btn.disabled=false; btn.textContent='Run Bloodhound';
+  wwInvSetProgress(selected.length,selected.length,'Bloodhound investigation complete.');
+  var errorCount=Object.keys(wwInvState.errors).length;
+  if(errorCount)wwInvShowStatus('Investigation completed with '+errorCount+' source error(s). Open the red tab(s) for details.','bad');
+  else wwInvShowStatus('Bloodhound investigation complete. Open the Timeline tab to follow the suspect activity.','good');
+}
+function wwInvCallSource(arg){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).runWatchdogInvestigationSource(arg);});}
+function wwInvSetProgress(done,total,text){var pct=total?Math.round((done/total)*100):0;document.getElementById('invProgressBar').style.width=pct+'%';document.getElementById('invProgressText').textContent=text;}
+function wwInvUpdateSummary(){var total=Object.values(wwInvState.results).reduce(function(n,r){return n+(r.count||0);},0);document.getElementById('invMetricRecords').textContent=Number(total).toLocaleString();document.getElementById('invMetricSources').textContent=Object.keys(wwInvState.results).length;document.getElementById('invMetricErrors').textContent=Object.keys(wwInvState.errors).length;document.getElementById('invMetricTarget').textContent=wwInvState.targetEmail||'—';}
+function wwInvGetResult(key){
+  if(key==='timeline') return wwInvState.timeline;
+  return wwInvState.results[key] || null;
+}
+function wwInvRenderTabs(){
+  var tabs=document.getElementById('invTabs');
+  tabs.innerHTML='';
+  var keys=[];
+  if(wwInvState.timeline) keys.push('timeline');
+  keys=keys.concat(Object.keys(wwInvState.results),Object.keys(wwInvState.errors).filter(function(k){return !wwInvState.results[k];}));
+  if(!keys.length){
+    tabs.innerHTML='<span class="inv-small-note" style="padding:8px">Results will appear here.</span>';
+    return;
+  }
+  keys.forEach(function(key){
+    var btn=document.createElement('button');
+    var isTimeline=key==='timeline';
+    var isError=!isTimeline&&!!wwInvState.errors[key]&&!wwInvState.results[key];
+    btn.className='inv-tab'+(wwInvState.activeSource===key?' active':'');
+    var result=wwInvGetResult(key);
+    var count=result?result.count:'ERR';
+    btn.innerHTML=esc(isTimeline?'Timeline':wwInvGetSourceLabel(key))+'<span class="count">'+esc(String(count))+'</span>';
+    if(isError)btn.style.color='#fca5a5';
+    if(isTimeline)btn.style.color='#fcd34d';
+    btn.onclick=function(){
+      wwInvState.activeSource=key;
+      wwInvState.sortColumn=-1;
+      document.getElementById('invFilter').value='';
+      wwInvRenderTabs();
+      wwInvRenderCurrentTable();
+    };
+    tabs.appendChild(btn);
+  });
+}
+function wwInvRenderCurrentTable(){
+  var wrap=document.getElementById('invTableWrap'),source=wwInvState.activeSource;
+  var controls=document.getElementById('bhTimelineControls');
+  if(controls)controls.classList.toggle('show',source==='timeline');
+
+  if(!source){
+    wrap.innerHTML='<div class="inv-empty">Run Bloodhound to view results.</div>';
+    document.getElementById('invVisibleCount').textContent='';
+    return;
+  }
+  if(source!=='timeline'&&wwInvState.errors[source]&&!wwInvState.results[source]){
+    wrap.innerHTML='<div class="inv-error-card"><strong>'+esc(wwInvGetSourceLabel(source))+'</strong><br><br>'+esc(wwInvState.errors[source])+'</div>';
+    document.getElementById('invVisibleCount').textContent='Source error';
+    return;
+  }
+
+  var result=wwInvGetResult(source);
+  if(!result||!result.rows||!result.rows.length){
+    var msg=source==='timeline'
+      ? 'No events match the current Bloodhound timeline filter. Verify the suspect IP address(es), or switch Timeline to All Account Activity.'
+      : 'No records returned for this source and date range.';
+    wrap.innerHTML='<div class="inv-empty">'+esc(msg)+'</div>';
+    document.getElementById('invVisibleCount').textContent='0 records';
+    return;
+  }
+
+  var needle=document.getElementById('invFilter').value.trim().toLowerCase();
+  var rows=result.rows.map(function(row,idx){return {row:row,idx:idx};});
+  if(source==='timeline') rows=wwBhFilterTimelineRows(rows);
+
+  if(needle)rows=rows.filter(function(x){
+    return x.row.some(function(v){return String(v==null?'':v).toLowerCase().indexOf(needle)>=0;});
+  });
+  if(wwInvState.sortColumn>=0){
+    var c=wwInvState.sortColumn,dir=wwInvState.sortAsc?1:-1;
+    rows.sort(function(a,b){
+      return String(a.row[c]==null?'':a.row[c]).localeCompare(String(b.row[c]==null?'':b.row[c]),undefined,{numeric:true})*dir;
+    });
+  }
+
+  var html='<table class="inv-table"><thead><tr>';
+  result.columns.forEach(function(col,i){
+    var arrow=wwInvState.sortColumn===i?(wwInvState.sortAsc?' ▲':' ▼'):'';
+    html+='<th onclick="wwInvSortBy('+i+')">'+esc(col)+arrow+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  rows.forEach(function(x){
+    var rowClass=source==='timeline'?'':(wwInvIsLinkClickedRow(source,result.columns,x.row)?'inv-row-link':'');
+    html+='<tr class="'+rowClass+'">';
+    x.row.forEach(function(value,i){
+      var v=String(value==null?'':value),cls=wwInvCellClass(v);
+      if(source==='timeline'&&i===1){
+        if(v==='SUSPECT IP')cls='bh-track-suspect';
+        else if(v==='LIKELY RELATED')cls='bh-track-related';
+        else if(v==='OTHER IP')cls='bh-track-other';
+        else cls='bh-track-unknown';
+      }
+      html+='<td class="'+cls+'" title="'+wwInvEscAttr(v)+'">'+esc(v)+'</td>';
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+  document.getElementById('invVisibleCount').textContent=rows.length.toLocaleString()+' of '+result.rows.length.toLocaleString()+' records';
+}
+
+function wwBhOnPivotChanged(){
+  wwBhBuildTimeline();
+  if(wwInvState.activeSource==='timeline'){
+    wwInvRenderTabs();
+    wwInvRenderCurrentTable();
+  }
+}
+function wwBhParseSuspectIps(){
+  var el=document.getElementById('invSuspectIps');
+  var text=el?el.value:'';
+  var parts=String(text||'').split(/[\s,;]+/).map(function(v){return v.trim().toLowerCase();}).filter(Boolean);
+  return Array.from(new Set(parts));
+}
+function wwBhParseDisplayedTime(value){
+  if(!value)return null;
+  var direct=new Date(value);
+  if(!isNaN(direct.getTime()))return direct;
+  var m=String(value).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)$/i);
+  if(!m)return null;
+  var h=Number(m[4]);
+  if(String(m[7]).toUpperCase()==='PM'&&h<12)h+=12;
+  if(String(m[7]).toUpperCase()==='AM'&&h===12)h=0;
+  return new Date(Number(m[3]),Number(m[1])-1,Number(m[2]),h,Number(m[5]),Number(m[6]));
+}
+function wwBhColumnIndex(columns,names){
+  var lower=(columns||[]).map(function(c){return String(c||'').toLowerCase();});
+  for(var i=0;i<names.length;i++){
+    var n=String(names[i]).toLowerCase();
+    var idx=lower.indexOf(n);
+    if(idx>=0)return idx;
+  }
+  return -1;
+}
+function wwBhValue(columns,row,names){
+  var i=wwBhColumnIndex(columns,names);
+  return i>=0?String(row[i]==null?'':row[i]):'';
+}
+function wwBhEventSummary(source,columns,row){
+  var event=wwBhValue(columns,row,['Mail Event','Event','Event Name','Action Type','Method']);
+  var parts=[];
+  if(source==='gmail'){
+    var subject=wwBhValue(columns,row,['Subject']);
+    var sender=wwBhValue(columns,row,['Sender']);
+    var recipients=wwBhValue(columns,row,['Recipient(s)']);
+    var url=wwBhValue(columns,row,['Target / Link URL']);
+    if(subject)parts.push('Subject: '+subject);
+    if(sender)parts.push('From: '+sender);
+    if(recipients)parts.push('To: '+recipients);
+    if(url)parts.push('URL: '+url);
+  } else if(source==='drive'){
+    var item=wwBhValue(columns,row,['Item Name']);
+    var target=wwBhValue(columns,row,['Target User']);
+    var vis=wwBhValue(columns,row,['Visibility']);
+    if(item)parts.push('Item: '+item);
+    if(target)parts.push('Target: '+target);
+    if(vis)parts.push('Visibility: '+vis);
+  } else if(source==='token'){
+    var app=wwBhValue(columns,row,['App Name','Application / Client']);
+    var client=wwBhValue(columns,row,['Client ID']);
+    var scopes=wwBhValue(columns,row,['Scopes / Permissions']);
+    if(app)parts.push('App: '+app);
+    if(client)parts.push('Client: '+client);
+    if(scopes)parts.push('Scopes: '+scopes);
+  } else {
+    var actor=wwBhValue(columns,row,['Actor Email']);
+    var action=wwBhValue(columns,row,['Action Type']);
+    var client2=wwBhValue(columns,row,['Application / Client']);
+    if(actor)parts.push('Actor: '+actor);
+    if(action)parts.push('Action: '+action);
+    if(client2)parts.push('Client: '+client2);
+  }
+  return {event:event||wwInvGetSourceLabel(source),details:parts.join(' • ')};
+}
+function wwBhMaybeAutoSelectSuspectIp(){
+  var input=document.getElementById('invSuspectIps');
+  if(!input||String(input.value||'').trim())return;
+  var login=wwInvState.results.login;
+  if(!login||!login.rows||!login.rows.length||!invContext.anchor)return;
+
+  var tsIdx=wwBhColumnIndex(login.columns,['Timestamp']);
+  var ipIdx=wwBhColumnIndex(login.columns,['IP Address']);
+  var cityIdx=wwBhColumnIndex(login.columns,['City']);
+  var regIdx=wwBhColumnIndex(login.columns,['State / Region','State / Subdivision']);
+  var coIdx=wwBhColumnIndex(login.columns,['Country','Country / Region']);
+  if(tsIdx<0||ipIdx<0)return;
+
+  var anchor=invContext.anchor.getTime();
+  var best=null;
+  login.rows.forEach(function(row){
+    var ip=String(row[ipIdx]||'').trim();
+    if(!ip)return;
+    var d=wwBhParseDisplayedTime(row[tsIdx]);
+    if(!d)return;
+    var diff=Math.abs(d.getTime()-anchor);
+    if(diff>20*60000)return;
+    var score=-diff;
+    var city=cityIdx>=0?String(row[cityIdx]||'').toLowerCase():'';
+    var reg=regIdx>=0?String(row[regIdx]||'').toLowerCase():'';
+    var co=coIdx>=0?String(row[coIdx]||'').toLowerCase():'';
+    if(invContext.country&&co&&co.indexOf(String(invContext.country).toLowerCase())>=0)score+=100000000;
+    if(invContext.region&&reg&&reg.indexOf(String(invContext.region).toLowerCase())>=0)score+=50000000;
+    if(invContext.city&&city&&city.indexOf(String(invContext.city).toLowerCase())>=0)score+=25000000;
+    if(!best||score>best.score)best={ip:ip,score:score,diff:diff};
+  });
+
+  if(best){
+    input.value=best.ip;
+    wwInvShowStatus('Bloodhound matched the selected event to login IP '+best.ip+'. Verify the pivot IP before relying on the timeline.','info');
+  }
+}
+function wwBhBuildTimeline(){
+  var suspectIps=wwBhParseSuspectIps();
+  var suspectSet={};
+  suspectIps.forEach(function(ip){suspectSet[ip]=true;});
+  var raw=[];
+
+  Object.keys(wwInvState.results).forEach(function(source){
+    var result=wwInvState.results[source];
+    if(!result||!result.rows)return;
+    var columns=result.columns||[];
+    result.rows.forEach(function(row){
+      var tsText=wwBhValue(columns,row,['Timestamp']);
+      var d=wwBhParseDisplayedTime(tsText);
+      if(!d)return;
+      var ip=wwBhValue(columns,row,['IP Address']).trim();
+      var loc=[wwBhValue(columns,row,['City']),wwBhValue(columns,row,['State / Region','State / Subdivision']),wwBhValue(columns,row,['Country','Country / Region'])].filter(Boolean).join(', ');
+      var s=wwBhEventSummary(source,columns,row);
+      raw.push({
+        time:d.getTime(), timestamp:tsText, source:source,
+        sourceLabel:wwInvGetSourceLabel(source), ip:ip,
+        location:loc, event:s.event, details:s.details,
+        track:(ip&&suspectSet[ip.toLowerCase()])?'SUSPECT IP':(ip?'OTHER IP':'UNKNOWN')
+      });
+    });
+  });
+
+  var suspectTimes=raw.filter(function(e){return e.track==='SUSPECT IP';}).map(function(e){return e.time;});
+  var minutes=Number((document.getElementById('bhRelatedMinutes')||{}).value||15);
+  var windowMs=minutes*60000;
+  raw.forEach(function(e){
+    if(e.track!=='UNKNOWN'||!suspectTimes.length)return;
+    var related=suspectTimes.some(function(t){return Math.abs(e.time-t)<=windowMs;});
+    if(related)e.track='LIKELY RELATED';
+  });
+
+  raw.sort(function(a,b){return a.time-b.time;});
+  var rows=raw.map(function(e){
+    return [e.timestamp,e.track,e.sourceLabel,e.event,e.ip,e.location,e.details];
+  });
+  wwInvState.timeline={
+    source:'timeline',
+    label:'Timeline',
+    count:rows.length,
+    truncated:false,
+    columns:['Timestamp','Track','Source','Event','IP Address','Location / Context','Details'],
+    rows:rows
+  };
+
+  var note=document.getElementById('bhTimelinePivotNote');
+  if(note){
+    note.textContent=suspectIps.length
+      ? ('Pivot: '+suspectIps.join(', '))
+      : 'No suspect IP selected';
+  }
+  wwInvRenderTabs();
+  if(wwInvState.activeSource==='timeline')wwInvRenderCurrentTable();
+}
+function wwBhFilterTimelineRows(rows){
+  var mode=(document.getElementById('bhTimelineMode')||{}).value||'suspect_related';
+  if(mode==='all')return rows;
+  return rows.filter(function(x){
+    var track=String(x.row[1]||'');
+    if(mode==='suspect_only')return track==='SUSPECT IP';
+    return track==='SUSPECT IP'||track==='LIKELY RELATED';
+  });
+}
+function wwBhRenderTimeline(){
+  if(wwInvState.activeSource==='timeline')wwInvRenderCurrentTable();
+}
+
+function wwInvIsLinkClickedRow(source,columns,row){if(source!=='gmail')return false;var idx=columns.indexOf('Mail Event');if(idx<0)return false;return String(row[idx]==null?'':row[idx]).toUpperCase().indexOf('LINK CLICKED')>=0;}
+function wwInvSortBy(index){if(wwInvState.sortColumn===index)wwInvState.sortAsc=!wwInvState.sortAsc;else{wwInvState.sortColumn=index;wwInvState.sortAsc=true;}wwInvRenderCurrentTable();}
+function wwInvCellClass(v){var s=String(v||'').toUpperCase();if(s==='FAILURE'||s==='YES'||s.indexOf('LINK CLICKED')>=0||s.indexOf('DOWNLOADED')>=0)return'inv-cell-bad';if(s==='SUCCESS'||s==='NO')return'inv-cell-good';if(s.indexOf('AUTHORIZE')>=0||s.indexOf('SUSPICIOUS')>=0)return'inv-cell-warn';return'';}
+function wwInvDownloadCurrentCsv(){var source=wwInvState.activeSource;if(!source)return;var r=wwInvGetResult(source);if(!r)return;var rows=r.rows;if(source==='timeline')rows=wwBhFilterTimelineRows(r.rows.map(function(row){return{row:row};})).map(function(x){return x.row;});wwInvDownloadCsv(source+'_'+wwInvSafeName(wwInvState.targetEmail)+'.csv',r.columns,rows);}
+function wwInvDownloadAllCsv(){var keys=Object.keys(wwInvState.results);if(!keys.length)return;var columns=['Source','Source Label','Row JSON'],rows=[];keys.forEach(function(key){var r=wwInvState.results[key];r.rows.forEach(function(row){var o={};r.columns.forEach(function(c,i){o[c]=row[i];});rows.push([key,r.label,JSON.stringify(o)]);});});wwInvDownloadCsv('investigation_'+wwInvSafeName(wwInvState.targetEmail)+'_combined.csv',columns,rows);}
+function wwInvDownloadCsv(filename,columns,rows){var csv=[columns].concat(rows).map(function(row){return row.map(wwInvCsvCell).join(',');}).join('\r\n');var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});var url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);}
+function wwInvCsvCell(value){var s=String(value==null?'':value);return '"'+s.replace(/"/g,'""')+'"';}
+function wwInvCreateGoogleSheet(arg){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).createWatchdogInvestigationSheet(arg);});}
+function wwInvAppendGoogleSheetChunk(arg){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).appendWatchdogInvestigationSheetChunk(arg);});}
+function wwInvFinalizeGoogleSheet(arg){return new Promise(function(resolve,reject){google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).finalizeWatchdogInvestigationSheet(arg);});}
+async function wwInvSaveToGoogleSheet(){
+  var keys=Object.keys(wwInvState.results);
+  if(!keys.length){wwInvShowStatus('Run an investigation before saving to Google Sheets.','bad');return;}
+  var btn=document.getElementById('invSaveSheetBtn');
+  if(btn&&btn.disabled)return;
+  var originalText=btn?btn.textContent:'Save to Google Sheet';
+  if(btn){btn.disabled=true;btn.textContent='Creating Sheet…';}
+  var start=document.getElementById('invStart').value;
+  var end=document.getElementById('invEnd').value;
+  var summaries=keys.map(function(key){var r=wwInvState.results[key]||{};return{source:key,label:r.label||wwInvGetSourceLabel(key),count:Number(r.count||0),truncated:r.truncated===true};});
+  var errors=Object.keys(wwInvState.errors).map(function(key){return{source:key,label:wwInvGetSourceLabel(key),error:wwInvState.errors[key]};});
+  try{
+    wwInvShowStatus('Creating Google Sheet case file…','info');
+    var created=await wwInvCreateGoogleSheet({email:wwInvState.targetEmail,start:start,end:end,sources:summaries,errors:errors});
+    var chunkSize=500;
+    for(var k=0;k<keys.length;k++){
+      var source=keys[k],r=wwInvState.results[source];
+      var rows=Array.isArray(r.rows)?r.rows:[];
+      var totalChunks=Math.max(1,Math.ceil(rows.length/chunkSize));
+      for(var c=0;c<totalChunks;c++){
+        var chunk=rows.slice(c*chunkSize,(c+1)*chunkSize);
+        if(btn)btn.textContent='Saving '+wwInvGetSourceLabel(source)+'…';
+        wwInvShowStatus('Saving '+wwInvGetSourceLabel(source)+' — '+Math.min(c*chunkSize+chunk.length,rows.length).toLocaleString()+' of '+rows.length.toLocaleString()+' rows…','info');
+        await wwInvAppendGoogleSheetChunk({token:created.token,source:source,columns:r.columns,rows:chunk,firstChunk:c===0});
+      }
+    }
+    if(wwInvState.timeline&&wwInvState.timeline.rows){
+      var tr=wwInvState.timeline;
+      var timelineChunks=Math.max(1,Math.ceil(tr.rows.length/chunkSize));
+      for(var tc=0;tc<timelineChunks;tc++){
+        var tchunk=tr.rows.slice(tc*chunkSize,(tc+1)*chunkSize);
+        if(btn)btn.textContent='Saving Timeline…';
+        await wwInvAppendGoogleSheetChunk({token:created.token,source:'timeline',columns:tr.columns,rows:tchunk,firstChunk:tc===0});
+      }
+    }
+    var finished=await wwInvFinalizeGoogleSheet({token:created.token});
+    wwInvShowSheetSaved(finished.name||created.name,finished.url||created.url);
+  }catch(err){wwInvShowStatus('Google Sheet export failed: '+wwInvErrorText(err),'bad');}
+  finally{if(btn){btn.disabled=false;btn.textContent=originalText;}}
+}
+function wwInvShowSheetSaved(name,url){var el=document.getElementById('invStatus');el.innerHTML='Saved to Google Drive: <strong>'+esc(name||'Workspace Watchdog Investigation')+'</strong> &nbsp; <a href="'+wwInvEscAttr(url||'')+'" target="_blank" rel="noopener" style="color:#86efac;text-decoration:underline;font-weight:700;">Open Google Sheet</a>';el.className='inv-status show good';}
+function wwInvPrintCurrent(){var source=wwInvState.activeSource;if(!source)return;var r=wwInvGetResult(source);if(!r)return;var printRows=r.rows;if(source==='timeline')printRows=wwBhFilterTimelineRows(r.rows.map(function(row){return{row:row};})).map(function(x){return x.row;});var w=window.open('','_blank');if(!w)return;var html='<html><head><title>'+esc(wwInvGetSourceLabel(source))+'</title><style>body{font-family:Arial,sans-serif;font-size:10px}h2{font-size:16px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #bbb;padding:4px;text-align:left;vertical-align:top;word-break:break-word}th{background:#eee}</style></head><body><h2>Workspace Bloodhound — '+esc(wwInvGetSourceLabel(source))+'</h2><div>'+esc(wwInvState.targetEmail)+'</div><br><table><thead><tr>'+r.columns.map(function(c){return'<th>'+esc(c)+'</th>';}).join('')+'</tr></thead><tbody>'+printRows.map(function(row){return'<tr>'+row.map(function(v){return'<td>'+esc(String(v==null?'':v))+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></body></html>';w.document.write(html);w.document.close();w.focus();setTimeout(function(){w.print();},250);}
+function wwInvClearResults(hideStatus){wwInvState.results={};wwInvState.errors={};wwInvState.timeline=null;wwInvState.activeSource=null;wwInvState.targetEmail='';wwInvState.sortColumn=-1;document.getElementById('invResults').classList.remove('show');document.getElementById('invProgress').classList.remove('show');document.getElementById('invProgressBar').style.width='0%';document.getElementById('invTableWrap').innerHTML='<div class="inv-empty">Run an investigation to view results.</div>';if(hideStatus!==false)document.getElementById('invStatus').className='inv-status';wwInvUpdateSummary();wwInvRenderTabs();}
+function wwInvGetSourceLabel(key){return WW_INV_SOURCE_LABELS[key]||key;}
+function wwInvShowStatus(message,type){var el=document.getElementById('invStatus');el.textContent=message;el.className='inv-status show '+(type||'info');}
+function wwInvErrorText(err){if(!err)return'Unknown error';return err.message||String(err);}
+function wwInvSafeName(s){return String(s||'results').replace(/[^a-z0-9._-]+/gi,'_');}
+function wwInvEscAttr(value){return esc(value).replace(/\n/g,'&#10;').replace(/'/g,'&#039;');}
+
 function clearDetail() {
   var detail = document.getElementById('detail');
   detail.classList.remove('open');
